@@ -135,15 +135,31 @@ class EvernoteExporter:
                         error_msg = f"初始化失败 (退出码: {proc.returncode})"
                         if stderr:
                             error_msg += f"\n错误详情: {stderr}"
-                        if "authentication" in stderr.lower():
-                            error_msg += "\n💡 可能是账号密码错误，请检查："
-                            error_msg += "\n   - 用户名是否正确（邮箱地址）"
-                            error_msg += "\n   - 密码是否正确"
-                            error_msg += "\n   - 是否选择了正确的印象笔记版本"
-                        elif "network" in stderr.lower() or "connection" in stderr.lower():
-                            error_msg += "\n💡 网络连接问题，请检查网络连接"
-                        elif "2fa" in stderr.lower() or "two-factor" in stderr.lower():
-                            error_msg += "\n💡 两步验证问题，请尝试使用应用密码"
+
+                        # 分析具体错误类型并提供解决方案
+                        stderr_lower = stderr.lower()
+                        if "username not found" in stderr_lower or "user not found" in stderr_lower:
+                            error_msg += "\n\n🎯 账号不存在错误："
+                            error_msg += f"\n   输入的账号: {username}"
+                            error_msg += "\n   建议检查:"
+                            error_msg += "\n   ✓ 账号邮箱地址是否正确"
+                            error_msg += "\n   ✓ 是否选择了正确的印象笔记版本（中国版/国际版）"
+                            error_msg += "\n   ✓ 账号是否已激活"
+                        elif "authentication" in stderr_lower or "login failed" in stderr_lower:
+                            error_msg += "\n\n🔐 认证失败："
+                            error_msg += "\n   ✓ 密码是否正确"
+                            error_msg += "\n   ✓ 如果启用了两步验证，请使用应用专用密码"
+                            error_msg += "\n   ✓ 检查账号是否被锁定"
+                        elif "network" in stderr_lower or "connection" in stderr_lower:
+                            error_msg += "\n\n🌐 网络连接问题："
+                            error_msg += "\n   ✓ 检查网络连接"
+                            error_msg += "\n   ✓ 尝试禁用代理: unset HTTP_PROXY HTTPS_PROXY"
+                            error_msg += "\n   ✓ 检查防火墙设置"
+                        else:
+                            error_msg += "\n\n💡 通用解决方案："
+                            error_msg += "\n   ✓ 确认账号密码正确"
+                            error_msg += "\n   ✓ 检查印象笔记版本选择"
+                            error_msg += "\n   ✓ 尝试手动登录印象笔记客户端验证账号"
 
                         raise Exception(error_msg)
 

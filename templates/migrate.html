@@ -78,16 +78,42 @@
                         </div>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="rememberCredentials">
-                        <label class="form-check-label" for="rememberCredentials">
-                            记住用户名（密码不会保存）
-                        </label>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="evernoteBackend" class="form-label">
+                                <i class="fas fa-server me-1"></i>印象笔记版本
+                            </label>
+                            <select class="form-select" id="evernoteBackend">
+                                <option value="china" selected>印象笔记中国版 (推荐)</option>
+                                <option value="international">Evernote国际版</option>
+                            </select>
+                            <div class="form-text">
+                                中国用户通常使用印象笔记中国版
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="rememberCredentials">
+                                <label class="form-check-label" for="rememberCredentials">
+                                    记住用户名（密码不会保存）
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>注意：</strong>您的账号密码仅用于连接印象笔记服务器导出数据，不会被保存或上传。
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>重要提示：</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>请使用<strong>真实的印象笔记账号</strong>，不要使用测试账号</li>
+                            <li>如果启用了两步验证，请使用<strong>应用专用密码</strong></li>
+                            <li>确保选择正确的印象笔记版本（中国版/国际版）</li>
+                        </ul>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -375,9 +401,10 @@ function startAutoMigration() {
 
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
+    const backend = document.getElementById('evernoteBackend').value;
     const rememberCredentials = document.getElementById('rememberCredentials').checked;
 
-    console.log('Username:', username, 'Password length:', password.length);
+    console.log('Username:', username, 'Password length:', password.length, 'Backend:', backend);
 
     if (!username || !password) {
         alert('请输入用户名和密码');
@@ -401,6 +428,7 @@ function startAutoMigration() {
         config = getDefaultConfig();
     }
 
+    config.evernote_backend = backend;
     config.evernote_credentials = {
         username: username,
         password: password
