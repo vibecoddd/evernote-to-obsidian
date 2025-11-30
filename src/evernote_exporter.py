@@ -91,18 +91,43 @@ class EvernoteExporter:
 
         try:
             print(f"{Fore.BLUE}📊 初始化数据库...")
+            print(f"{Fore.CYAN}   后端: {self.backend}")
+            print(f"{Fore.CYAN}   用户: {username}")
+
             init_cmd = [
                 'evernote-backup', 'init-db',
                 '--backend', self.backend, '--force'
             ]
 
-            with subprocess.Popen(init_cmd, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=True, cwd=self.temp_dir) as proc:
-                stdout, stderr = proc.communicate(f"{username}\n{password}\n")
+            try:
+                with subprocess.Popen(init_cmd, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    text=True, cwd=self.temp_dir) as proc:
 
-                if proc.returncode != 0:
-                    raise Exception(f"初始化失败: {stderr}")
+                    # 发送凭据
+                    input_data = f"{username}\n{password}\n"
+                    stdout, stderr = proc.communicate(input_data, timeout=60)
+
+                    print(f"{Fore.CYAN}   初始化命令输出: {stdout[:200]}...")
+
+                    if proc.returncode != 0:
+                        error_msg = f"初始化失败 (退出码: {proc.returncode})"
+                        if stderr:
+                            error_msg += f"\n错误详情: {stderr}"
+                        if "authentication" in stderr.lower():
+                            error_msg += "\n💡 可能是账号密码错误，请检查："
+                            error_msg += "\n   - 用户名是否正确（邮箱地址）"
+                            error_msg += "\n   - 密码是否正确"
+                            error_msg += "\n   - 是否选择了正确的印象笔记版本"
+                        elif "network" in stderr.lower() or "connection" in stderr.lower():
+                            error_msg += "\n💡 网络连接问题，请检查网络连接"
+                        elif "2fa" in stderr.lower() or "two-factor" in stderr.lower():
+                            error_msg += "\n💡 两步验证问题，请尝试使用应用密码"
+
+                        raise Exception(error_msg)
+
+            except subprocess.TimeoutExpired:
+                raise Exception("初始化超时，可能是网络连接问题或印象笔记服务器响应慢")
 
             print(f"{Fore.GREEN}✅ 数据库初始化成功")
 
