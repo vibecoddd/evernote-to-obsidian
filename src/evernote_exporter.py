@@ -96,17 +96,19 @@ class EvernoteExporter:
 
             init_cmd = [
                 'evernote-backup', 'init-db',
-                '--backend', self.backend, '--force'
+                '--backend', self.backend,
+                '--user', username,
+                '--password', password,
+                '--force'
             ]
 
             try:
-                with subprocess.Popen(init_cmd, stdin=subprocess.PIPE,
+                with subprocess.Popen(init_cmd,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                     text=True, cwd=self.temp_dir) as proc:
 
-                    # 发送凭据
-                    input_data = f"{username}\n{password}\n"
-                    stdout, stderr = proc.communicate(input_data, timeout=60)
+                    # 等待命令完成
+                    stdout, stderr = proc.communicate(timeout=60)
 
                     print(f"{Fore.CYAN}   初始化命令输出: {stdout[:200]}...")
 

@@ -124,8 +124,8 @@ def main():
 
     print("\n" + "=" * 50)
     print("🔧 手动测试建议:")
-    print("1. 运行: evernote-backup init-db --backend china")
-    print("2. 输入您的印象笔记账号和密码")
+    print("1. 运行: evernote-backup init-db --backend china --user YOUR_EMAIL --password YOUR_PASSWORD")
+    print("2. 或使用交互式模式: evernote-backup init-db --backend china")
     print("3. 查看具体的错误信息")
     print("4. 根据错误信息采用相应解决方案")
 

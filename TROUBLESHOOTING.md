@@ -85,7 +85,7 @@ mkdir -p /tmp/test_evernote
 cd /tmp/test_evernote
 
 # 手动运行初始化
-evernote-backup init-db --backend china  # 或 international
+evernote-backup init-db --backend china --user YOUR_EMAIL --password YOUR_PASSWORD  # 或 international
 
 # 查看详细错误信息
 ```
