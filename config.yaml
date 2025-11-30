@@ -1,0 +1,169 @@
+# 印象笔记到Obsidian同步工具 - 配置文件
+
+# 输入设置
+input:
+  # ENEX文件路径列表（可以指定多个文件）
+  enex_files:
+    # - "/path/to/your/notebook1.enex"
+    # - "/path/to/your/notebook2.enex"
+
+  # 输入目录（工具会自动搜索目录下的所有.enex文件）
+  input_directory: ""
+
+  # 文件编码
+  encoding: "utf-8"
+
+# 输出设置
+output:
+  # Obsidian库路径（必须设置）
+  obsidian_vault: ""
+
+  # 如果库不存在是否自动创建
+  create_vault_if_not_exists: true
+
+  # 是否备份现有文件
+  backup_existing: true
+
+  # 是否覆盖现有文件
+  overwrite_existing: false
+
+# 转换设置
+conversion:
+  # 是否保留HTML标签
+  preserve_html_tags: false
+
+  # 是否转换表格
+  convert_tables: true
+
+  # 是否转换链接
+  convert_links: true
+
+  # 是否提取图片
+  extract_images: true
+
+  # 图片存储文件夹
+  image_folder: "attachments"
+
+  # 最大文件名长度
+  max_filename_length: 100
+
+  # 是否清理HTML
+  clean_html: true
+
+  # Markdown文件扩展名
+  markdown_extensions:
+    - ".md"
+
+# 元数据设置
+metadata:
+  # 包含创建日期
+  include_created_date: true
+
+  # 包含修改日期
+  include_modified_date: true
+
+  # 包含标签
+  include_tags: true
+
+  # 包含笔记本信息
+  include_notebook: true
+
+  # 包含来源信息
+  include_source: true
+
+  # 日期格式
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+  # 前言样式（yaml/json）
+  frontmatter_style: "yaml"
+
+# 文件组织设置
+file_organization:
+  # 按笔记本组织
+  organize_by_notebook: true
+
+  # 按标签组织
+  organize_by_tags: false
+
+  # 按日期组织
+  organize_by_date: false
+
+  # 日期文件夹格式
+  date_folder_format: "%Y/%m"
+
+  # 处理重复文件（rename/skip/overwrite）
+  handle_duplicates: "rename"
+
+  # 无效字符替换
+  invalid_char_replacement: "_"
+
+  # 最大文件夹深度
+  max_folder_depth: 10
+
+# 日志设置
+logging:
+  # 日志级别（DEBUG/INFO/WARNING/ERROR）
+  level: "INFO"
+
+  # 日志文件
+  file: "evernote2obsidian.log"
+
+  # 是否输出到控制台
+  console: true
+
+  # 日志格式
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# 同步设置
+sync:
+  # 增量同步
+  incremental: true
+
+  # 同步状态文件
+  state_file: ".sync_state.json"
+
+  # 检查修改时间
+  check_modification_time: true
+
+  # 跳过未更改的文件
+  skip_unchanged: true
+
+# 高级设置
+advanced:
+  # 并行处理
+  parallel_processing: false
+
+  # 最大工作进程数
+  max_workers: 4
+
+  # 处理块大小
+  chunk_size: 100
+
+  # 内存限制
+  memory_limit: "1GB"
+
+  # 临时目录
+  temp_directory: ""
+
+# 使用示例配置
+#
+# 1. 基本使用：
+#    input:
+#      input_directory: "/Users/username/Downloads/Evernote_Export"
+#    output:
+#      obsidian_vault: "/Users/username/Documents/MyObsidianVault"
+#
+# 2. 指定特定文件：
+#    input:
+#      enex_files:
+#        - "/Users/username/Downloads/Work_Notes.enex"
+#        - "/Users/username/Downloads/Personal_Notes.enex"
+#
+# 3. 自定义组织方式：
+#    file_organization:
+#      organize_by_tags: true
+#      organize_by_notebook: false
+#
+# 4. 禁用增量同步（每次完全同步）：
+#    sync:
+#      incremental: false

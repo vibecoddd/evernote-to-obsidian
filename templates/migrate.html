@@ -1,0 +1,718 @@
+{% extends "base.html" %}
+
+{% block title %}开始迁移 - 印象笔记迁移工具{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- 迁移模式选择 -->
+        <div class="card border-0 shadow mb-4" id="modeSelection">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-play me-2"></i>选择迁移模式
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border h-100 mode-card" data-mode="auto">
+                            <div class="card-body text-center">
+                                <i class="fas fa-magic fa-3x text-primary mb-3"></i>
+                                <h5>自动导出模式</h5>
+                                <p class="text-muted">
+                                    自动连接印象笔记服务器，导出所有笔记数据并进行转换。
+                                    适合首次迁移或完整备份。
+                                </p>
+                                <button class="btn btn-primary" onclick="selectMode('auto')">
+                                    <i class="fas fa-download me-1"></i>选择此模式
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border h-100 mode-card" data-mode="upload">
+                            <div class="card-body text-center">
+                                <i class="fas fa-upload fa-3x text-success mb-3"></i>
+                                <h5>文件上传模式</h5>
+                                <p class="text-muted">
+                                    上传已有的ENEX文件进行转换。
+                                    适合已经导出了ENEX文件的用户。
+                                </p>
+                                <button class="btn btn-success" onclick="selectMode('upload')">
+                                    <i class="fas fa-file-import me-1"></i>选择此模式
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自动导出模式 -->
+        <div class="card border-0 shadow mb-4" id="autoMode" style="display: none;">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-download me-2"></i>自动导出模式
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="autoForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user me-1"></i>用户名/邮箱
+                                </label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>密码
+                                </label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="rememberCredentials">
+                        <label class="form-check-label" for="rememberCredentials">
+                            记住用户名（密码不会保存）
+                        </label>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>注意：</strong>您的账号密码仅用于连接印象笔记服务器导出数据，不会被保存或上传。
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary" onclick="goBack()">
+                            <i class="fas fa-arrow-left me-1"></i>返回
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="startAutoMigration()">
+                            <i class="fas fa-play me-1"></i>开始导出和迁移
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 文件上传模式 -->
+        <div class="card border-0 shadow mb-4" id="uploadMode" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-upload me-2"></i>文件上传模式
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="enexFiles" class="form-label">
+                        <i class="fas fa-file me-1"></i>选择ENEX文件
+                    </label>
+                    <input type="file" class="form-control" id="enexFiles" multiple accept=".enex">
+                    <div class="form-text">
+                        可以选择多个.enex文件。文件将上传到服务器临时目录进行处理。
+                    </div>
+                </div>
+
+                <!-- 文件列表 -->
+                <div id="fileList" class="mb-3" style="display: none;">
+                    <h6>已选择的文件：</h6>
+                    <div id="selectedFiles"></div>
+                </div>
+
+                <!-- 上传进度 -->
+                <div id="uploadProgress" class="mb-3" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" id="uploadStatus">准备上传...</small>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="button" class="btn btn-secondary" onclick="goBack()">
+                        <i class="fas fa-arrow-left me-1"></i>返回
+                    </button>
+                    <button type="button" class="btn btn-success" id="uploadBtn" onclick="uploadFiles()" disabled>
+                        <i class="fas fa-cloud-upload-alt me-1"></i>上传并开始迁移
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 迁移进度 -->
+        <div class="card border-0 shadow" id="migrationProgress" style="display: none;">
+            <div class="card-header bg-info text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-spinner fa-spin me-2"></i>迁移进度
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- 整体进度 -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">整体进度</span>
+                        <span class="badge bg-primary" id="overallProgress">0%</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             id="overallProgressBar" role="progressbar" style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 步骤进度 -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="step-item" id="step1">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <div class="step-title">导出笔记</div>
+                                <div class="step-status">等待中...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="step-item" id="step2">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <div class="step-title">转换格式</div>
+                                <div class="step-status">等待中...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="step-item" id="step3">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <div class="step-title">设置Obsidian</div>
+                                <div class="step-status">等待中...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="step-item" id="step4">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <div class="step-title">完成配置</div>
+                                <div class="step-status">等待中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详细日志 -->
+                <div class="mb-3">
+                    <h6>
+                        <i class="fas fa-list me-1"></i>详细日志
+                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="toggleLog()">
+                            <i class="fas fa-eye" id="logToggleIcon"></i>
+                        </button>
+                    </h6>
+                    <div class="card" id="logCard" style="display: none;">
+                        <div class="card-body">
+                            <div id="migrationLog" class="log-container">
+                                <!-- 日志将在这里显示 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 取消按钮 -->
+                <div class="text-center">
+                    <button type="button" class="btn btn-warning" id="cancelBtn" onclick="cancelMigration()">
+                        <i class="fas fa-stop me-1"></i>取消迁移
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 迁移结果 -->
+        <div class="card border-0 shadow" id="migrationResult" style="display: none;">
+            <div class="card-header text-white" id="resultHeader">
+                <h4 class="card-title mb-0" id="resultTitle">
+                    <!-- 结果标题将动态设置 -->
+                </h4>
+            </div>
+            <div class="card-body">
+                <div id="resultContent">
+                    <!-- 结果内容将动态生成 -->
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary me-2" onclick="window.location.href='/results'">
+                        <i class="fas fa-chart-bar me-1"></i>查看详细结果
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                        <i class="fas fa-home me-1"></i>返回首页
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let socket = null;
+let currentTaskId = null;
+let migrationConfig = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化Socket.IO连接
+    socket = io();
+
+    socket.on('connect', function() {
+        console.log('已连接到服务器');
+    });
+
+    socket.on('migration_progress', function(data) {
+        updateMigrationProgress(data);
+    });
+
+    socket.on('migration_completed', function(data) {
+        showMigrationResult(data);
+    });
+
+    socket.on('migration_error', function(data) {
+        showMigrationError(data);
+    });
+
+    // 检查是否有保存的配置
+    const savedConfig = sessionStorage.getItem('migrationConfig');
+    if (savedConfig) {
+        migrationConfig = JSON.parse(savedConfig);
+        sessionStorage.removeItem('migrationConfig');
+    }
+
+    // 文件选择监听
+    document.getElementById('enexFiles').addEventListener('change', function() {
+        const files = this.files;
+        showFileList(files);
+        document.getElementById('uploadBtn').disabled = files.length === 0;
+    });
+});
+
+// 选择迁移模式
+function selectMode(mode) {
+    document.getElementById('modeSelection').style.display = 'none';
+
+    if (mode === 'auto') {
+        document.getElementById('autoMode').style.display = 'block';
+        loadSavedCredentials();
+    } else if (mode === 'upload') {
+        document.getElementById('uploadMode').style.display = 'block';
+    }
+}
+
+// 返回模式选择
+function goBack() {
+    document.getElementById('modeSelection').style.display = 'block';
+    document.getElementById('autoMode').style.display = 'none';
+    document.getElementById('uploadMode').style.display = 'none';
+}
+
+// 加载保存的凭据
+function loadSavedCredentials() {
+    const savedUsername = localStorage.getItem('evernoteUsername');
+    if (savedUsername) {
+        document.getElementById('username').value = savedUsername;
+        document.getElementById('rememberCredentials').checked = true;
+    }
+}
+
+// 显示文件列表
+function showFileList(files) {
+    const fileListDiv = document.getElementById('fileList');
+    const selectedFilesDiv = document.getElementById('selectedFiles');
+
+    if (files.length === 0) {
+        fileListDiv.style.display = 'none';
+        return;
+    }
+
+    fileListDiv.style.display = 'block';
+    selectedFilesDiv.innerHTML = '';
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileItem = document.createElement('div');
+        fileItem.className = 'border rounded p-2 mb-2';
+        fileItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-file-alt text-primary me-2"></i>
+                    <strong>${file.name}</strong>
+                    <small class="text-muted">(${formatFileSize(file.size)})</small>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeFile(${i})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        selectedFilesDiv.appendChild(fileItem);
+    }
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 开始自动迁移
+function startAutoMigration() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const rememberCredentials = document.getElementById('rememberCredentials').checked;
+
+    if (!username || !password) {
+        alert('请输入用户名和密码');
+        return;
+    }
+
+    // 保存用户名（如果选择记住）
+    if (rememberCredentials) {
+        localStorage.setItem('evernoteUsername', username);
+    } else {
+        localStorage.removeItem('evernoteUsername');
+    }
+
+    // 准备配置
+    const config = migrationConfig || getDefaultConfig();
+    config.evernote_credentials = {
+        username: username,
+        password: password
+    };
+
+    startMigration(config);
+}
+
+// 上传文件
+function uploadFiles() {
+    const files = document.getElementById('enexFiles').files;
+
+    if (files.length === 0) {
+        alert('请选择ENEX文件');
+        return;
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('enex_files', files[i]);
+    }
+
+    // 显示上传进度
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = progressDiv.querySelector('.progress-bar');
+    const statusText = document.getElementById('uploadStatus');
+
+    progressDiv.style.display = 'block';
+    statusText.textContent = '正在上传文件...';
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressBar.style.width = percentComplete + '%';
+            statusText.textContent = `上传进度: ${Math.round(percentComplete)}%`;
+        }
+    });
+
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            if (response.success) {
+                statusText.textContent = '文件上传成功，开始迁移...';
+
+                // 准备配置
+                const config = migrationConfig || getDefaultConfig();
+                config.input.enex_files = response.files;
+                config.temp_directory = response.temp_dir;
+
+                startMigration(config);
+            } else {
+                alert('文件上传失败: ' + response.error);
+                progressDiv.style.display = 'none';
+            }
+        } else {
+            alert('文件上传失败');
+            progressDiv.style.display = 'none';
+        }
+    };
+
+    xhr.open('POST', '/api/upload_enex');
+    xhr.send(formData);
+}
+
+// 开始迁移
+function startMigration(config) {
+    // 隐藏模式选择和表单
+    document.getElementById('modeSelection').style.display = 'none';
+    document.getElementById('autoMode').style.display = 'none';
+    document.getElementById('uploadMode').style.display = 'none';
+
+    // 显示迁移进度
+    document.getElementById('migrationProgress').style.display = 'block';
+
+    fetch('/api/start_migration', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentTaskId = data.task_id;
+            // 加入任务房间以接收进度更新
+            socket.emit('join_task', { task_id: currentTaskId });
+            addLogMessage('迁移任务已开始...', 'info');
+        } else {
+            alert('开始迁移失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('开始迁移失败: ' + error);
+    });
+}
+
+// 更新迁移进度
+function updateMigrationProgress(data) {
+    const { step, step_name, progress, message } = data;
+
+    // 更新整体进度
+    const overallProgressBar = document.getElementById('overallProgressBar');
+    const overallProgressBadge = document.getElementById('overallProgress');
+    const overallProgress = ((step - 1) * 25) + (progress / 4);
+
+    overallProgressBar.style.width = overallProgress + '%';
+    overallProgressBadge.textContent = Math.round(overallProgress) + '%';
+
+    // 更新步骤状态
+    updateStepStatus(step, step_name, progress, message);
+
+    // 添加日志
+    addLogMessage(`[步骤${step}] ${message}`, 'info');
+}
+
+// 更新步骤状态
+function updateStepStatus(currentStep, stepName, progress, message) {
+    for (let i = 1; i <= 4; i++) {
+        const stepElement = document.getElementById(`step${i}`);
+        const stepNumber = stepElement.querySelector('.step-number');
+        const stepStatus = stepElement.querySelector('.step-status');
+
+        if (i < currentStep) {
+            // 已完成的步骤
+            stepElement.className = 'step-item completed';
+            stepNumber.innerHTML = '<i class="fas fa-check"></i>';
+            stepStatus.textContent = '已完成';
+        } else if (i === currentStep) {
+            // 当前步骤
+            stepElement.className = 'step-item active';
+            stepNumber.textContent = i;
+            stepStatus.textContent = progress < 100 ? `${progress}% - ${message}` : '已完成';
+        } else {
+            // 未开始的步骤
+            stepElement.className = 'step-item';
+            stepNumber.textContent = i;
+            stepStatus.textContent = '等待中...';
+        }
+    }
+}
+
+// 显示迁移结果
+function showMigrationResult(data) {
+    const { success, result } = data;
+
+    document.getElementById('migrationProgress').style.display = 'none';
+    document.getElementById('migrationResult').style.display = 'block';
+
+    const resultHeader = document.getElementById('resultHeader');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultContent = document.getElementById('resultContent');
+
+    if (success) {
+        resultHeader.className = 'card-header bg-success text-white';
+        resultTitle.innerHTML = '<i class="fas fa-check-circle me-2"></i>迁移成功完成！';
+
+        resultContent.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-chart-pie me-1 text-primary"></i>迁移统计</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-file-alt me-1"></i> 总笔记数: <strong>${result.stats.total_notes}</strong></li>
+                        <li><i class="fas fa-check me-1 text-success"></i> 成功转换: <strong>${result.stats.converted_notes}</strong></li>
+                        <li><i class="fas fa-paperclip me-1"></i> 附件数量: <strong>${result.stats.total_attachments}</strong></li>
+                        <li><i class="fas fa-clock me-1"></i> 耗时: <strong>${calculateDuration(result.start_time, result.end_time)}</strong></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="fas fa-folder me-1 text-primary"></i>输出信息</h6>
+                    <p><strong>Obsidian库位置:</strong></p>
+                    <code class="d-block p-2 bg-light rounded">${result.vault_path || '未知'}</code>
+                </div>
+            </div>
+        `;
+    } else {
+        resultHeader.className = 'card-header bg-danger text-white';
+        resultTitle.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>迁移失败';
+
+        resultContent.innerHTML = `
+            <div class="alert alert-danger">
+                <h6>错误信息:</h6>
+                <p>${result.message}</p>
+            </div>
+            <div class="mt-3">
+                <h6>可能的解决方案:</h6>
+                <ul>
+                    <li>检查网络连接和账号密码</li>
+                    <li>确保有足够的磁盘空间</li>
+                    <li>检查输出路径权限</li>
+                    <li>查看详细日志获取更多信息</li>
+                </ul>
+            </div>
+        `;
+    }
+}
+
+// 显示迁移错误
+function showMigrationError(data) {
+    addLogMessage(`错误: ${data.error}`, 'error');
+    showMigrationResult({
+        success: false,
+        result: {
+            message: data.error
+        }
+    });
+}
+
+// 添加日志消息
+function addLogMessage(message, type) {
+    const logContainer = document.getElementById('migrationLog');
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+
+    const timestamp = new Date().toLocaleTimeString();
+    logEntry.innerHTML = `
+        <span class="log-time">[${timestamp}]</span>
+        <span class="log-message">${message}</span>
+    `;
+
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// 切换日志显示
+function toggleLog() {
+    const logCard = document.getElementById('logCard');
+    const toggleIcon = document.getElementById('logToggleIcon');
+
+    if (logCard.style.display === 'none') {
+        logCard.style.display = 'block';
+        toggleIcon.className = 'fas fa-eye-slash';
+    } else {
+        logCard.style.display = 'none';
+        toggleIcon.className = 'fas fa-eye';
+    }
+}
+
+// 取消迁移
+function cancelMigration() {
+    if (confirm('确定要取消迁移吗？')) {
+        // 这里可以添加取消迁移的逻辑
+        addLogMessage('用户取消迁移', 'warning');
+        document.getElementById('cancelBtn').disabled = true;
+    }
+}
+
+// 计算时长
+function calculateDuration(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const duration = end - start;
+
+    const hours = Math.floor(duration / 3600000);
+    const minutes = Math.floor((duration % 3600000) / 60000);
+    const seconds = Math.floor((duration % 60000) / 1000);
+
+    if (hours > 0) {
+        return `${hours}小时${minutes}分${seconds}秒`;
+    } else if (minutes > 0) {
+        return `${minutes}分${seconds}秒`;
+    } else {
+        return `${seconds}秒`;
+    }
+}
+
+// 获取默认配置
+function getDefaultConfig() {
+    return {
+        evernote_backend: 'china',
+        temp_directory: '/tmp/evernote_migration',
+        remember_credentials: true,
+        input: {
+            enex_files: [],
+            input_directory: '',
+            encoding: 'utf-8'
+        },
+        output: {
+            obsidian_vault: '/home/user/Documents/ObsidianVault',
+            create_vault_if_not_exists: true,
+            backup_existing: true,
+            overwrite_existing: false
+        },
+        conversion: {
+            preserve_html_tags: false,
+            convert_tables: true,
+            convert_links: true,
+            extract_images: true,
+            image_folder: 'attachments',
+            max_filename_length: 100,
+            clean_html: true,
+            markdown_extensions: ['.md']
+        },
+        metadata: {
+            include_created_date: true,
+            include_modified_date: true,
+            include_tags: true,
+            include_notebook: true,
+            include_source: true,
+            date_format: '%Y-%m-%d %H:%M:%S'
+        },
+        file_organization: {
+            organize_by_notebook: true,
+            organize_by_tags: false,
+            organize_by_date: false,
+            handle_duplicates: 'rename',
+            invalid_char_replacement: '_'
+        },
+        sync: {
+            incremental: false,
+            skip_unchanged: true
+        },
+        logging: {
+            level: 'INFO',
+            console: true
+        },
+        migration: {
+            auto_open_obsidian: true,
+            keep_temp_files: false,
+            create_welcome_note: true,
+            create_templates: true,
+            optimize_settings: true
+        }
+    };
+}
+</script>
+{% endblock %}

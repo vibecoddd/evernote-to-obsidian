@@ -1,0 +1,410 @@
+/* 自定义样式 */
+
+/* 整体布局 */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* 导航栏样式 */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+/* 首页特殊样式 */
+.display-4 {
+    font-weight: 300;
+    margin-bottom: 1rem;
+}
+
+.lead {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+/* 流程步骤样式 */
+.process-step {
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin: 0 auto;
+}
+
+/* 迁移进度步骤样式 */
+.step-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.step-item .step-number {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.step-item.active {
+    background-color: #cce5ff;
+    border-left: 4px solid #007bff;
+}
+
+.step-item.active .step-number {
+    background-color: #007bff;
+    animation: pulse 1.5s infinite;
+}
+
+.step-item.completed {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.step-item.completed .step-number {
+    background-color: #28a745;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.step-status {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 模式选择卡片 */
+.mode-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mode-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.15);
+}
+
+.mode-card:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s;
+}
+
+.mode-card:hover:before {
+    left: 100%;
+}
+
+/* 进度条样式 */
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* 日志样式 */
+.log-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    padding: 1rem;
+    border-radius: 5px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.log-entry {
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.log-entry.log-error {
+    color: #ff6b6b;
+}
+
+.log-entry.log-warning {
+    color: #ffa726;
+}
+
+.log-entry.log-success {
+    color: #66bb6a;
+}
+
+.log-entry.log-info {
+    color: #42a5f5;
+}
+
+.log-time {
+    color: #888;
+    margin-right: 0.5rem;
+}
+
+.log-message {
+    white-space: pre-wrap;
+}
+
+/* 表单样式增强 */
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-check-label {
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* 自定义按钮样式 */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(45deg, #1e7e34, #155724);
+}
+
+/* 文件列表样式 */
+.file-list-item {
+    transition: all 0.2s ease;
+}
+
+.file-list-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2rem;
+    }
+
+    .step-item {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .step-item .step-number {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* 深色主题支持 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    }
+
+    .card {
+        background-color: #2d2d2d;
+        border-color: #444;
+    }
+
+    .form-control {
+        background-color: #3a3a3a;
+        border-color: #555;
+        color: #ffffff;
+    }
+
+    .form-control:focus {
+        background-color: #3a3a3a;
+        border-color: #80bdff;
+        color: #ffffff;
+    }
+
+    .text-muted {
+        color: #adb5bd !important;
+    }
+
+    .bg-light {
+        background-color: #2d2d2d !important;
+    }
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 3px solid #007bff;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 工具提示增强 */
+[data-bs-toggle="tooltip"] {
+    cursor: help;
+}
+
+/* 成功/错误状态提示 */
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.alert-dismissible .btn-close {
+    padding: 0.75rem 1rem;
+}
+
+/* 页脚样式 */
+footer {
+    border-top: 1px solid #e9ecef;
+    margin-top: auto;
+}
+
+/* 特殊效果 */
+.shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 状态指示器 */
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.status-indicator.success {
+    background-color: #28a745;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.3);
+}
+
+.status-indicator.error {
+    background-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.3);
+}
+
+.status-indicator.warning {
+    background-color: #ffc107;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+}
+
+.status-indicator.info {
+    background-color: #17a2b8;
+    box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.3);
+}

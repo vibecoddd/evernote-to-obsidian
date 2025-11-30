@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}迁移结果 - 印象笔记迁移工具{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>迁移历史
+                </h4>
+            </div>
+            <div class="card-body">
+                <div id="migrationHistory">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-history fa-3x mb-3"></i>
+                        <p>暂无迁移记录</p>
+                        <a href="{{ url_for('migrate_page') }}" class="btn btn-primary">
+                            <i class="fas fa-play me-1"></i>开始第一次迁移
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最新迁移结果详情 -->
+        <div class="card border-0 shadow" id="latestResult" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>最新迁移详情
+                </h4>
+            </div>
+            <div class="card-body" id="resultDetails">
+                <!-- 详情内容将动态填充 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadMigrationHistory();
+});
+
+function loadMigrationHistory() {
+    // 从localStorage加载迁移历史
+    const history = JSON.parse(localStorage.getItem('migrationHistory') || '[]');
+    const historyDiv = document.getElementById('migrationHistory');
+
+    if (history.length === 0) {
+        return;
+    }
+
+    historyDiv.innerHTML = '';
+
+    history.forEach((record, index) => {
+        const recordDiv = document.createElement('div');
+        recordDiv.className = 'border rounded p-3 mb-3';
+        recordDiv.innerHTML = `
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    <div class="text-center">
+                        <i class="fas fa-${record.success ? 'check-circle text-success' : 'times-circle text-danger'} fa-2x"></i>
+                        <div class="small text-muted mt-1">
+                            ${record.success ? '成功' : '失败'}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-1">迁移任务 #${index + 1}</h6>
+                    <div class="text-muted small">
+                        <div>开始时间: ${new Date(record.start_time).toLocaleString()}</div>
+                        ${record.end_time ? `<div>结束时间: ${new Date(record.end_time).toLocaleString()}</div>` : ''}
+                        ${record.vault_path ? `<div>输出路径: ${record.vault_path}</div>` : ''}
+                    </div>
+                </div>
+                <div class="col-md-2 text-center">
+                    ${record.stats ? `
+                        <div class="small">
+                            <div>${record.stats.total_notes || 0} 笔记</div>
+                            <div>${record.stats.total_attachments || 0} 附件</div>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="col-md-2 text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="showResultDetails(${index})">
+                        <i class="fas fa-eye me-1"></i>查看详情
+                    </button>
+                </div>
+            </div>
+        `;
+        historyDiv.appendChild(recordDiv);
+    });
+
+    // 显示最新的结果详情
+    if (history.length > 0) {
+        showResultDetails(0);
+    }
+}
+
+function showResultDetails(index) {
+    const history = JSON.parse(localStorage.getItem('migrationHistory') || '[]');
+    const record = history[index];
+
+    if (!record) return;
+
+    const latestResultDiv = document.getElementById('latestResult');
+    const resultDetailsDiv = document.getElementById('resultDetails');
+
+    latestResultDiv.style.display = 'block';
+
+    const duration = record.start_time && record.end_time ?
+        calculateDuration(record.start_time, record.end_time) : '未知';
+
+    resultDetailsDiv.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-info-circle me-1 text-primary"></i>基本信息</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td>状态:</td>
+                        <td>
+                            <span class="badge ${record.success ? 'bg-success' : 'bg-danger'}">
+                                ${record.success ? '成功' : '失败'}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>开始时间:</td>
+                        <td>${new Date(record.start_time).toLocaleString()}</td>
+                    </tr>
+                    ${record.end_time ? `
+                        <tr>
+                            <td>结束时间:</td>
+                            <td>${new Date(record.end_time).toLocaleString()}</td>
+                        </tr>
+                        <tr>
+                            <td>总耗时:</td>
+                            <td>${duration}</td>
+                        </tr>
+                    ` : ''}
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-chart-pie me-1 text-primary"></i>统计信息</h6>
+                ${record.stats ? `
+                    <table class="table table-sm">
+                        <tr>
+                            <td>总笔记数:</td>
+                            <td><strong>${record.stats.total_notes || 0}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>成功转换:</td>
+                            <td><strong class="text-success">${record.stats.converted_notes || 0}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>跳过笔记:</td>
+                            <td><strong class="text-warning">${record.stats.skipped_notes || 0}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>附件数量:</td>
+                            <td><strong>${record.stats.total_attachments || 0}</strong></td>
+                        </tr>
+                    </table>
+                ` : '<p class="text-muted">暂无统计信息</p>'}
+            </div>
+        </div>
+
+        ${record.vault_path ? `
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h6><i class="fas fa-folder me-1 text-primary"></i>输出信息</h6>
+                    <div class="alert alert-info">
+                        <strong>Obsidian库位置:</strong><br>
+                        <code>${record.vault_path}</code>
+                        <div class="mt-2">
+                            <small>您可以在Obsidian中打开此目录作为库来查看迁移的笔记。</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+
+        ${record.message ? `
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h6><i class="fas fa-comment me-1 text-primary"></i>详细信息</h6>
+                    <div class="alert ${record.success ? 'alert-success' : 'alert-danger'}">
+                        ${record.message}
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+
+        ${record.errors && record.errors.length > 0 ? `
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h6><i class="fas fa-exclamation-triangle me-1 text-warning"></i>错误信息</h6>
+                    <div class="alert alert-warning">
+                        <ul class="mb-0">
+                            ${record.errors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <button class="btn btn-primary me-2" onclick="window.location.href='/migrate'">
+                    <i class="fas fa-plus me-1"></i>开始新的迁移
+                </button>
+                <button class="btn btn-outline-secondary" onclick="clearHistory()">
+                    <i class="fas fa-trash me-1"></i>清除历史记录
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function calculateDuration(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const duration = end - start;
+
+    const hours = Math.floor(duration / 3600000);
+    const minutes = Math.floor((duration % 3600000) / 60000);
+    const seconds = Math.floor((duration % 60000) / 1000);
+
+    if (hours > 0) {
+        return `${hours}小时${minutes}分${seconds}秒`;
+    } else if (minutes > 0) {
+        return `${minutes}分${seconds}秒`;
+    } else {
+        return `${seconds}秒`;
+    }
+}
+
+function clearHistory() {
+    if (confirm('确定要清除所有迁移历史记录吗？此操作无法撤销。')) {
+        localStorage.removeItem('migrationHistory');
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

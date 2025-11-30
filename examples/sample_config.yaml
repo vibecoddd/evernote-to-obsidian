@@ -1,0 +1,57 @@
+# 印象笔记到Obsidian同步工具 - 示例配置
+
+# ====================
+# 基本配置示例
+# ====================
+
+input:
+  # 示例1: 指定包含ENEX文件的目录
+  input_directory: "/Users/username/Documents/EvernoteExport"
+
+  # 示例2: 指定具体的ENEX文件
+  # enex_files:
+  #   - "/Users/username/Documents/WorkNotes.enex"
+  #   - "/Users/username/Documents/PersonalNotes.enex"
+  #   - "/Users/username/Documents/ProjectNotes.enex"
+
+output:
+  # Obsidian库路径
+  obsidian_vault: "/Users/username/Documents/ObsidianVault"
+  create_vault_if_not_exists: true
+  backup_existing: true
+
+# ====================
+# 按笔记本组织（推荐）
+# ====================
+file_organization:
+  organize_by_notebook: true
+  organize_by_tags: false
+  organize_by_date: false
+  handle_duplicates: "rename"
+
+# ====================
+# 增量同步配置（推荐）
+# ====================
+sync:
+  incremental: true
+  skip_unchanged: true
+  state_file: ".sync_state.json"
+
+# ====================
+# 元数据完整保留
+# ====================
+metadata:
+  include_created_date: true
+  include_modified_date: true
+  include_tags: true
+  include_notebook: true
+  include_source: true
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# ====================
+# 日志配置
+# ====================
+logging:
+  level: "INFO"
+  console: true
+  file: "sync.log"

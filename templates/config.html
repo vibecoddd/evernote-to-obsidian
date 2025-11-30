@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}配置设置 - 印象笔记迁移工具{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>配置向导
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="configForm">
+                    <!-- 步骤1: 印象笔记版本 -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-cloud me-2"></i>1. 选择印象笔记版本
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check border rounded p-3">
+                                    <input class="form-check-input" type="radio" name="evernote_backend"
+                                           id="china" value="china" checked>
+                                    <label class="form-check-label" for="china">
+                                        <strong>印象笔记中国版</strong><br>
+                                        <small class="text-muted">yinxiang.com</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check border rounded p-3">
+                                    <input class="form-check-input" type="radio" name="evernote_backend"
+                                           id="international" value="international">
+                                    <label class="form-check-label" for="international">
+                                        <strong>Evernote国际版</strong><br>
+                                        <small class="text-muted">evernote.com</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 步骤2: 输出路径 -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-folder me-2"></i>2. Obsidian库设置
+                        </h5>
+                        <div class="mb-3">
+                            <label for="vault_path" class="form-label">Obsidian库路径</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="vault_path"
+                                       placeholder="选择或输入Obsidian库路径" required>
+                                <button class="btn btn-outline-secondary" type="button" id="selectPath">
+                                    <i class="fas fa-folder-open"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                默认路径: Documents/ObsidianVault
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="create_vault" checked>
+                                    <label class="form-check-label" for="create_vault">
+                                        如果不存在则创建库
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="backup_existing" checked>
+                                    <label class="form-check-label" for="backup_existing">
+                                        备份现有文件
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 步骤3: 转换设置 -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-exchange-alt me-2"></i>3. 转换设置
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="convert_tables" checked>
+                                    <label class="form-check-label" for="convert_tables">
+                                        转换表格
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="extract_images" checked>
+                                    <label class="form-check-label" for="extract_images">
+                                        提取图片附件
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="convert_links" checked>
+                                    <label class="form-check-label" for="convert_links">
+                                        转换链接
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="clean_html" checked>
+                                    <label class="form-check-label" for="clean_html">
+                                        清理HTML标签
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="image_folder" class="form-label">附件文件夹名称</label>
+                            <input type="text" class="form-control" id="image_folder"
+                                   value="attachments" required>
+                        </div>
+                    </div>
+
+                    <!-- 步骤4: 组织设置 -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-sitemap me-2"></i>4. 文件组织
+                        </h5>
+                        <div class="mb-3">
+                            <label class="form-label">组织方式</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="organize_by"
+                                       id="by_notebook" value="notebook" checked>
+                                <label class="form-check-label" for="by_notebook">
+                                    按笔记本分组
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="organize_by"
+                                       id="by_tags" value="tags">
+                                <label class="form-check-label" for="by_tags">
+                                    按标签分组
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="organize_by"
+                                       id="by_date" value="date">
+                                <label class="form-check-label" for="by_date">
+                                    按日期分组
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 步骤5: 高级选项 -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-cogs me-2"></i>5. 高级选项
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="auto_open_obsidian" checked>
+                                    <label class="form-check-label" for="auto_open_obsidian">
+                                        完成后自动打开Obsidian
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="create_welcome_note" checked>
+                                    <label class="form-check-label" for="create_welcome_note">
+                                        创建欢迎笔记
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="create_templates" checked>
+                                    <label class="form-check-label" for="create_templates">
+                                        创建常用模板
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="keep_temp_files">
+                                    <label class="form-check-label" for="keep_temp_files">
+                                        保留临时文件(调试)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary me-md-2" id="resetConfig">
+                            <i class="fas fa-undo me-1"></i>重置
+                        </button>
+                        <button type="button" class="btn btn-success me-md-2" id="saveConfig">
+                            <i class="fas fa-save me-1"></i>保存配置
+                        </button>
+                        <button type="button" class="btn btn-primary" id="startMigration">
+                            <i class="fas fa-play me-1"></i>开始迁移
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 保存的配置 -->
+        <div class="card border-0 shadow mt-4" id="savedConfigs" style="display: none;">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>保存的配置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="configList">
+                    <!-- 配置列表将在这里动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化默认路径
+    const homeDir = navigator.platform.includes('Win') ? 'C:\\Users\\' +
+        (process.env.USERNAME || 'User') + '\\Documents' :
+        (process.env.HOME || '/home/' + process.env.USER || '/home/user') + '/Documents';
+
+    document.getElementById('vault_path').value = homeDir + '/ObsidianVault';
+
+    // 路径选择按钮
+    document.getElementById('selectPath').addEventListener('click', function() {
+        // 在实际应用中，这里可以调用文件选择对话框
+        alert('请手动输入路径，或使用默认路径');
+    });
+
+    // 重置配置
+    document.getElementById('resetConfig').addEventListener('click', function() {
+        if (confirm('确定要重置所有配置吗？')) {
+            document.getElementById('configForm').reset();
+            document.getElementById('vault_path').value = homeDir + '/ObsidianVault';
+        }
+    });
+
+    // 保存配置
+    document.getElementById('saveConfig').addEventListener('click', function() {
+        const config = collectConfigData();
+        const configName = prompt('请输入配置名称:');
+        if (configName) {
+            saveConfigToLocal(configName, config);
+            showSavedConfigs();
+            showAlert('配置已保存: ' + configName, 'success');
+        }
+    });
+
+    // 开始迁移
+    document.getElementById('startMigration').addEventListener('click', function() {
+        const config = collectConfigData();
+
+        if (!validateConfig(config)) {
+            return;
+        }
+
+        if (confirm('确定要开始迁移吗？这可能需要一些时间。')) {
+            // 跳转到迁移页面
+            sessionStorage.setItem('migrationConfig', JSON.stringify(config));
+            window.location.href = '/migrate';
+        }
+    });
+
+    // 收集配置数据
+    function collectConfigData() {
+        const formData = new FormData(document.getElementById('configForm'));
+
+        return {
+            evernote_backend: formData.get('evernote_backend'),
+            temp_directory: '/tmp/evernote_migration',
+            remember_credentials: true,
+            input: {
+                enex_files: [],
+                input_directory: '',
+                encoding: 'utf-8'
+            },
+            output: {
+                obsidian_vault: document.getElementById('vault_path').value,
+                create_vault_if_not_exists: document.getElementById('create_vault').checked,
+                backup_existing: document.getElementById('backup_existing').checked,
+                overwrite_existing: false
+            },
+            conversion: {
+                preserve_html_tags: false,
+                convert_tables: document.getElementById('convert_tables').checked,
+                convert_links: document.getElementById('convert_links').checked,
+                extract_images: document.getElementById('extract_images').checked,
+                image_folder: document.getElementById('image_folder').value,
+                max_filename_length: 100,
+                clean_html: document.getElementById('clean_html').checked,
+                markdown_extensions: ['.md']
+            },
+            metadata: {
+                include_created_date: true,
+                include_modified_date: true,
+                include_tags: true,
+                include_notebook: true,
+                include_source: true,
+                date_format: '%Y-%m-%d %H:%M:%S'
+            },
+            file_organization: {
+                organize_by_notebook: formData.get('organize_by') === 'notebook',
+                organize_by_tags: formData.get('organize_by') === 'tags',
+                organize_by_date: formData.get('organize_by') === 'date',
+                handle_duplicates: 'rename',
+                invalid_char_replacement: '_'
+            },
+            sync: {
+                incremental: false,
+                skip_unchanged: true
+            },
+            logging: {
+                level: 'INFO',
+                console: true
+            },
+            migration: {
+                auto_open_obsidian: document.getElementById('auto_open_obsidian').checked,
+                keep_temp_files: document.getElementById('keep_temp_files').checked,
+                create_welcome_note: document.getElementById('create_welcome_note').checked,
+                create_templates: document.getElementById('create_templates').checked,
+                optimize_settings: true
+            }
+        };
+    }
+
+    // 验证配置
+    function validateConfig(config) {
+        if (!config.output.obsidian_vault.trim()) {
+            showAlert('请输入Obsidian库路径', 'error');
+            return false;
+        }
+
+        if (!config.conversion.image_folder.trim()) {
+            showAlert('请输入附件文件夹名称', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    // 保存配置到本地存储
+    function saveConfigToLocal(name, config) {
+        const savedConfigs = JSON.parse(localStorage.getItem('migrationConfigs') || '{}');
+        savedConfigs[name] = {
+            config: config,
+            saved_at: new Date().toISOString()
+        };
+        localStorage.setItem('migrationConfigs', JSON.stringify(savedConfigs));
+    }
+
+    // 显示保存的配置
+    function showSavedConfigs() {
+        const savedConfigs = JSON.parse(localStorage.getItem('migrationConfigs') || '{}');
+        const configList = document.getElementById('configList');
+
+        if (Object.keys(savedConfigs).length === 0) {
+            document.getElementById('savedConfigs').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('savedConfigs').style.display = 'block';
+        configList.innerHTML = '';
+
+        for (const [name, data] of Object.entries(savedConfigs)) {
+            const configItem = document.createElement('div');
+            configItem.className = 'border rounded p-3 mb-2';
+            configItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${name}</strong>
+                        <small class="text-muted d-block">
+                            保存时间: ${new Date(data.saved_at).toLocaleString()}
+                        </small>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="loadConfig('${name}')">
+                            <i class="fas fa-upload"></i> 加载
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig('${name}')">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                </div>
+            `;
+            configList.appendChild(configItem);
+        }
+    }
+
+    // 显示提示信息
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.card-body').prepend(alertDiv);
+
+        // 3秒后自动消失
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+
+    // 加载保存的配置
+    window.loadConfig = function(name) {
+        const savedConfigs = JSON.parse(localStorage.getItem('migrationConfigs') || '{}');
+        const config = savedConfigs[name]?.config;
+
+        if (!config) return;
+
+        // 填充表单
+        document.querySelector(`input[name="evernote_backend"][value="${config.evernote_backend}"]`).checked = true;
+        document.getElementById('vault_path').value = config.output.obsidian_vault;
+        document.getElementById('create_vault').checked = config.output.create_vault_if_not_exists;
+        document.getElementById('backup_existing').checked = config.output.backup_existing;
+        document.getElementById('convert_tables').checked = config.conversion.convert_tables;
+        document.getElementById('extract_images').checked = config.conversion.extract_images;
+        document.getElementById('convert_links').checked = config.conversion.convert_links;
+        document.getElementById('clean_html').checked = config.conversion.clean_html;
+        document.getElementById('image_folder').value = config.conversion.image_folder;
+
+        if (config.file_organization.organize_by_notebook) {
+            document.getElementById('by_notebook').checked = true;
+        } else if (config.file_organization.organize_by_tags) {
+            document.getElementById('by_tags').checked = true;
+        } else if (config.file_organization.organize_by_date) {
+            document.getElementById('by_date').checked = true;
+        }
+
+        document.getElementById('auto_open_obsidian').checked = config.migration.auto_open_obsidian;
+        document.getElementById('create_welcome_note').checked = config.migration.create_welcome_note;
+        document.getElementById('create_templates').checked = config.migration.create_templates;
+        document.getElementById('keep_temp_files').checked = config.migration.keep_temp_files;
+
+        showAlert('配置已加载: ' + name, 'success');
+    };
+
+    // 删除配置
+    window.deleteConfig = function(name) {
+        if (confirm('确定要删除配置 "' + name + '" 吗？')) {
+            const savedConfigs = JSON.parse(localStorage.getItem('migrationConfigs') || '{}');
+            delete savedConfigs[name];
+            localStorage.setItem('migrationConfigs', JSON.stringify(savedConfigs));
+            showSavedConfigs();
+            showAlert('配置已删除: ' + name, 'warning');
+        }
+    };
+
+    // 初始显示保存的配置
+    showSavedConfigs();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 印象笔记迁移工具{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- 欢迎区域 -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 text-primary">
+                <i class="fas fa-sync-alt me-3"></i>
+                印象笔记到Obsidian迁移工具
+            </h1>
+            <p class="lead text-muted">
+                一键完成印象笔记到Obsidian的完整迁移，包括导出、转换和配置！
+            </p>
+        </div>
+
+        <!-- 功能特性卡片 -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-primary mb-3">
+                            <i class="fas fa-download fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">自动导出</h5>
+                        <p class="card-text">集成evernote-backup，自动从印象笔记导出数据</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-success mb-3">
+                            <i class="fas fa-magic fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">智能转换</h5>
+                        <p class="card-text">HTML到Markdown的完美转换，保留格式和附件</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-info mb-3">
+                            <i class="fas fa-folder-open fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">完整保留</h5>
+                        <p class="card-text">完整保留文件夹结构、标签和元数据</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-warning mb-3">
+                            <i class="fas fa-rocket fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">即开即用</h5>
+                        <p class="card-text">迁移完成后自动配置和启动Obsidian</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用流程 -->
+        <div class="card border-0 shadow-sm mb-5">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-route me-2"></i>使用流程
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="process-step">
+                            <div class="step-number bg-primary text-white mb-2">1</div>
+                            <h6>配置设置</h6>
+                            <p class="text-muted small">选择印象笔记版本和输出路径</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="process-step">
+                            <div class="step-number bg-primary text-white mb-2">2</div>
+                            <h6>导出笔记</h6>
+                            <p class="text-muted small">自动从印象笔记导出ENEX文件</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="process-step">
+                            <div class="step-number bg-primary text-white mb-2">3</div>
+                            <h6>转换格式</h6>
+                            <p class="text-muted small">将ENEX转换为Markdown格式</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="process-step">
+                            <div class="step-number bg-primary text-white mb-2">4</div>
+                            <h6>完成配置</h6>
+                            <p class="text-muted small">创建Obsidian库并自动启动</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 开始使用 -->
+        <div class="text-center">
+            <h3 class="mb-4">开始您的迁移之旅</h3>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                <a href="{{ url_for('config_page') }}" class="btn btn-primary btn-lg me-md-2">
+                    <i class="fas fa-cog me-2"></i>开始配置
+                </a>
+                <a href="{{ url_for('migrate_page') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-upload me-2"></i>上传ENEX文件
+                </a>
+            </div>
+        </div>
+
+        <!-- 使用提示 -->
+        <div class="alert alert-info mt-5" role="alert">
+            <h5 class="alert-heading">
+                <i class="fas fa-info-circle me-2"></i>使用提示
+            </h5>
+            <p class="mb-2">
+                <strong>首次使用：</strong>建议先进行配置设置，然后使用自动导出功能。
+            </p>
+            <p class="mb-0">
+                <strong>已有ENEX文件：</strong>可以直接上传现有的ENEX文件进行转换。
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 页面加载完成后的初始化代码
+    console.log('首页加载完成');
+});
+</script>
+{% endblock %}
