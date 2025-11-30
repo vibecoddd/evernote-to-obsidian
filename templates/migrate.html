@@ -369,9 +369,13 @@ function formatFileSize(bytes) {
 
 // 开始自动迁移
 function startAutoMigration() {
+    console.log('startAutoMigration called');
+
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
     const rememberCredentials = document.getElementById('rememberCredentials').checked;
+
+    console.log('Username:', username, 'Password length:', password.length);
 
     if (!username || !password) {
         alert('请输入用户名和密码');
@@ -386,12 +390,21 @@ function startAutoMigration() {
     }
 
     // 准备配置
-    const config = migrationConfig || getDefaultConfig();
+    let config;
+    try {
+        config = migrationConfig || getDefaultConfig();
+        console.log('Config loaded:', config);
+    } catch (e) {
+        console.error('Error loading config:', e);
+        config = getDefaultConfig();
+    }
+
     config.evernote_credentials = {
         username: username,
         password: password
     };
 
+    console.log('Starting migration with config:', config);
     startMigration(config);
 }
 
@@ -455,6 +468,8 @@ function uploadFiles() {
 
 // 开始迁移
 function startMigration(config) {
+    console.log('startMigration called with config:', config);
+
     // 隐藏模式选择和表单
     document.getElementById('modeSelection').style.display = 'none';
     document.getElementById('autoMode').style.display = 'none';
@@ -463,6 +478,8 @@ function startMigration(config) {
     // 显示迁移进度
     document.getElementById('migrationProgress').style.display = 'block';
 
+    console.log('Sending migration request to /api/start_migration');
+
     fetch('/api/start_migration', {
         method: 'POST',
         headers: {
@@ -470,18 +487,30 @@ function startMigration(config) {
         },
         body: JSON.stringify(config)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
             currentTaskId = data.task_id;
-            // 加入任务房间以接收进度更新
-            socket.emit('join_task', { task_id: currentTaskId });
+            console.log('Task ID:', currentTaskId);
+            // 检查socket连接
+            if (socket && socket.connected) {
+                console.log('Socket connected, joining task room');
+                socket.emit('join_task', { task_id: currentTaskId });
+            } else {
+                console.error('Socket not connected');
+            }
             addLogMessage('迁移任务已开始...', 'info');
         } else {
+            console.error('Migration start failed:', data.error);
             alert('开始迁移失败: ' + data.error);
         }
     })
     .catch(error => {
+        console.error('Migration request failed:', error);
         alert('开始迁移失败: ' + error);
     });
 }

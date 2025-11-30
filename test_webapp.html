@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web应用测试</title>
+</head>
+<body>
+    <h1>Web应用连接测试</h1>
+
+    <div>
+        <h2>基础连接测试</h2>
+        <button onclick="testConnection()">测试连接</button>
+        <div id="connectionResult"></div>
+    </div>
+
+    <div>
+        <h2>API测试</h2>
+        <input type="text" id="testUsername" placeholder="用户名" value="test@example.com">
+        <input type="password" id="testPassword" placeholder="密码" value="testpass">
+        <button onclick="testMigrationAPI()">测试迁移API</button>
+        <div id="apiResult"></div>
+    </div>
+
+    <div>
+        <h2>Socket.IO测试</h2>
+        <button onclick="testSocket()">测试WebSocket</button>
+        <div id="socketResult"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket = null;
+
+        function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '测试中...';
+
+            fetch('http://localhost:5000/')
+                .then(response => response.text())
+                .then(data => {
+                    resultDiv.innerHTML = '<span style="color: green;">✅ 连接成功！</span>';
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = '<span style="color: red;">❌ 连接失败: ' + error + '</span>';
+                });
+        }
+
+        function testMigrationAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '测试API中...';
+
+            const username = document.getElementById('testUsername').value;
+            const password = document.getElementById('testPassword').value;
+
+            const config = {
+                evernote_backend: 'china',
+                evernote_credentials: {
+                    username: username,
+                    password: password
+                },
+                output: {
+                    obsidian_vault: '/tmp/test_vault'
+                }
+            };
+
+            fetch('http://localhost:5000/api/start_migration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.innerHTML = '<span style="color: green;">✅ API响应: ' + JSON.stringify(data, null, 2) + '</span>';
+            })
+            .catch(error => {
+                resultDiv.innerHTML = '<span style="color: red;">❌ API错误: ' + error + '</span>';
+            });
+        }
+
+        function testSocket() {
+            const resultDiv = document.getElementById('socketResult');
+            resultDiv.innerHTML = '测试Socket.IO中...';
+
+            try {
+                socket = io('http://localhost:5000');
+
+                socket.on('connect', function() {
+                    resultDiv.innerHTML = '<span style="color: green;">✅ Socket.IO连接成功！</span>';
+                });
+
+                socket.on('disconnect', function() {
+                    resultDiv.innerHTML = '<span style="color: orange;">⚠️ Socket.IO断开连接</span>';
+                });
+
+                socket.on('connect_error', function(error) {
+                    resultDiv.innerHTML = '<span style="color: red;">❌ Socket.IO连接错误: ' + error + '</span>';
+                });
+
+            } catch (error) {
+                resultDiv.innerHTML = '<span style="color: red;">❌ Socket.IO初始化失败: ' + error + '</span>';
+            }
+        }
+    </script>
+</body>
+</html>

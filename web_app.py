@@ -67,11 +67,20 @@ class WebMigrator:
         def start_migration():
             """开始迁移"""
             try:
+                print(f"收到迁移请求")
                 config_data = request.get_json()
+                print(f"配置数据: {config_data}")
+
+                if not config_data:
+                    return jsonify({
+                        'success': False,
+                        'error': '没有接收到配置数据'
+                    })
 
                 # 生成唯一的任务ID
                 task_id = str(uuid.uuid4())
                 session['task_id'] = task_id
+                print(f"生成任务ID: {task_id}")
 
                 # 创建配置对象
                 config = Config()
@@ -92,6 +101,7 @@ class WebMigrator:
                 })
 
             except Exception as e:
+                print(f"迁移启动错误: {e}")
                 return jsonify({
                     'success': False,
                     'error': str(e)

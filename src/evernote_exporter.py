@@ -52,6 +52,15 @@ class EvernoteExporter:
 
     def get_credentials(self) -> tuple[str, str]:
         """获取用户凭据"""
+        # 首先检查配置中是否有凭据（用于Web界面）
+        evernote_creds = self.config.get('evernote_credentials')
+        if evernote_creds:
+            username = evernote_creds.get('username')
+            password = evernote_creds.get('password')
+            if username and password:
+                print(f"{Fore.CYAN}🔐 使用配置中的账号: {username}")
+                return username, password
+
         print(f"\n{Fore.CYAN}🔐 请输入印象笔记账号信息:")
 
         credentials_file = Path(self.temp_dir) / '.credentials'
