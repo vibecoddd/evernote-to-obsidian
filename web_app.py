@@ -175,6 +175,8 @@ class WebMigrator:
     def _run_migration_task(self, task_id: str, config: Config):
         """在后台运行迁移任务"""
         try:
+            print(f"🚀 开始迁移任务 {task_id}")
+
             # 初始化任务状态
             self.active_migrations[task_id] = {
                 'status': 'running',
@@ -192,12 +194,28 @@ class WebMigrator:
                 }
             }
 
+            print(f"📊 初始化任务状态: {self.active_migrations[task_id]}")
+
+            # 发送初始进度更新
+            self.socketio.emit('migration_progress', {
+                'task_id': task_id,
+                'step': 1,
+                'step_name': '导出印象笔记',
+                'progress': 0,
+                'message': '正在开始迁移...'
+            }, room=task_id)
+
             # 创建自定义迁移器
+            print(f"🔧 创建迁移处理器...")
             migrator = WebMigrationHandler(task_id, self.socketio, self.active_migrations)
             migrator.config = config
 
+            print(f"📝 配置信息: {config.get_all()}")
+
             # 运行迁移
+            print(f"▶️  开始执行迁移...")
             success = migrator.run_migration()
+            print(f"✅ 迁移完成，结果: {success}")
 
             # 更新最终状态
             self.active_migrations[task_id].update({
@@ -215,6 +233,10 @@ class WebMigrator:
             }, room=task_id)
 
         except Exception as e:
+            print(f"❌ 迁移任务错误: {e}")
+            import traceback
+            traceback.print_exc()
+
             self.active_migrations[task_id].update({
                 'status': 'failed',
                 'message': f'迁移错误: {str(e)}',
@@ -243,6 +265,8 @@ class WebMigrationHandler(UnifiedMigrator):
 
     def _emit_progress(self, step: int, step_name: str, progress: int, message: str):
         """发送进度更新"""
+        print(f"📈 进度更新: 步骤{step} - {step_name} ({progress}%) - {message}")
+
         self.active_migrations[self.task_id].update({
             'step': step,
             'current_step_name': step_name,
@@ -250,13 +274,17 @@ class WebMigrationHandler(UnifiedMigrator):
             'message': message
         })
 
-        self.socketio.emit('migration_progress', {
+        progress_data = {
             'task_id': self.task_id,
             'step': step,
             'step_name': step_name,
             'progress': progress,
             'message': message
-        }, room=self.task_id)
+        }
+
+        print(f"📤 发送进度数据: {progress_data}")
+
+        self.socketio.emit('migration_progress', progress_data, room=self.task_id)
 
     def _step_export_evernote(self) -> bool:
         """步骤1：导出印象笔记（重写以支持Web进度）"""
