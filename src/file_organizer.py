@@ -25,9 +25,17 @@ class FileOrganizer:
             config: 配置字典
         """
         self.config = config
-        self.vault_path = Path(config.get('output.obsidian_vault', ''))
-        self.attachment_folder = config.get('conversion.image_folder', 'attachments')
+        # 正确获取嵌套配置
+        output_config = config.get('output', {})
+        vault_path = output_config.get('obsidian_vault', '/tmp/obsidian_vault')
+        self.vault_path = Path(vault_path)
+
+        conversion_config = config.get('conversion', {})
+        self.attachment_folder = conversion_config.get('image_folder', 'attachments')
         self.created_dirs = set()  # 跟踪已创建的目录
+
+        print(f"📁 FileOrganizer初始化: vault_path={self.vault_path}")
+        print(f"🖼️ 附件文件夹: {self.attachment_folder}")
 
     def organize_notes(self, notes: List[Note], notebook_name: str) -> List[Tuple[Note, str]]:
         """
@@ -282,8 +290,17 @@ class FileOrganizer:
         """
         full_path = self.vault_path / file_path
 
+        print(f"💾 保存笔记: {note.title}")
+        print(f"   文件路径: {full_path}")
+        print(f"   内容长度: {len(content)} 字符")
+
+        # 确保父目录存在
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+
         # 备份现有文件
-        if full_path.exists() and self.config.get('output.backup_existing', True):
+        output_config = self.config.get('output', {})
+        backup_existing = output_config.get('backup_existing', True)
+        if full_path.exists() and backup_existing:
             self._backup_file(full_path)
 
         # 保存文件
@@ -293,6 +310,8 @@ class FileOrganizer:
 
             # 设置文件时间戳
             self._set_file_timestamps(full_path, note)
+
+            print(f"   ✅ 文件已保存: {full_path.name}")
 
             return str(full_path.relative_to(self.vault_path))
 

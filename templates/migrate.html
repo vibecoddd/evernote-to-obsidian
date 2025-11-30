@@ -146,6 +146,24 @@
                     </div>
                 </div>
 
+                <!-- 输出目录选择 -->
+                <div class="mb-3">
+                    <label for="outputDirectory" class="form-label">
+                        <i class="fas fa-folder me-1"></i>输出目录
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="outputDirectory"
+                               placeholder="/path/to/obsidian/vault"
+                               value="/tmp/obsidian_vault">
+                        <button class="btn btn-outline-secondary" type="button" onclick="browseDirectory()">
+                            <i class="fas fa-folder-open me-1"></i>浏览
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        选择用于保存转换后笔记的输出目录。如果目录不存在，系统将自动创建。
+                    </div>
+                </div>
+
                 <!-- 文件列表 -->
                 <div id="fileList" class="mb-3" style="display: none;">
                     <h6>已选择的文件：</h6>
@@ -481,6 +499,12 @@ function uploadFiles() {
                 config.input.enex_files = response.files;
                 config.temp_directory = response.temp_dir;
 
+                // 获取输出目录
+                const outputDirectory = document.getElementById('outputDirectory').value.trim();
+                if (outputDirectory) {
+                    config.output.obsidian_vault = outputDirectory;
+                }
+
                 startMigration(config);
             } else {
                 alert('文件上传失败: ' + response.error);
@@ -494,6 +518,87 @@ function uploadFiles() {
 
     xhr.open('POST', '/api/upload_enex');
     xhr.send(formData);
+}
+
+// 浏览目录（注意：由于浏览器安全限制，无法直接访问文件系统）
+function browseDirectory() {
+    // 显示一个包含常用路径的模态框
+    const commonPaths = [
+        '/tmp/obsidian_vault',
+        '/home/user/Documents/ObsidianVault',
+        '/root/Documents/Obsidian',
+        '/Users/user/Documents/Obsidian',
+        'C:\\Users\\user\\Documents\\Obsidian'
+    ];
+
+    let pathList = commonPaths.map(path =>
+        `<div class="form-check">
+            <input class="form-check-input" type="radio" name="selectedPath" value="${path}" id="path_${path.replace(/[^a-zA-Z0-9]/g, '_')}">
+            <label class="form-check-label" for="path_${path.replace(/[^a-zA-Z0-9]/g, '_')}">
+                ${path}
+            </label>
+        </div>`
+    ).join('');
+
+    const modalHtml = `
+        <div class="modal fade" id="directoryModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">选择输出目录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">常用路径：</label>
+                            ${pathList}
+                        </div>
+                        <div class="mb-3">
+                            <label for="customPath" class="form-label">自定义路径：</label>
+                            <input type="text" class="form-control" id="customPath" placeholder="输入自定义路径">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="selectDirectory()">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    // 添加模态框到页面
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('directoryModal'));
+    modal.show();
+
+    // 当模态框关闭时删除DOM
+    document.getElementById('directoryModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// 选择目录
+function selectDirectory() {
+    const selectedPath = document.querySelector('input[name="selectedPath"]:checked');
+    const customPath = document.getElementById('customPath').value.trim();
+
+    let finalPath = '';
+    if (customPath) {
+        finalPath = customPath;
+    } else if (selectedPath) {
+        finalPath = selectedPath.value;
+    }
+
+    if (finalPath) {
+        document.getElementById('outputDirectory').value = finalPath;
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('directoryModal'));
+        modal.hide();
+    } else {
+        alert('请选择或输入一个路径');
+    }
 }
 
 // 开始迁移

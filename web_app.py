@@ -433,6 +433,37 @@ class WebMigrationHandler(UnifiedMigrator):
             self._emit_progress(4, '完成后处理', 50, f'后处理警告: {e}')
             return True
 
+    def run_migration(self) -> bool:
+        """运行迁移流程，支持跳过导出步骤"""
+        print(f"🚀 开始迁移流程...")
+
+        # 检查是否有已上传的ENEX文件
+        uploaded_files = self.config.get('input.enex_files', [])
+
+        if uploaded_files:
+            print(f"📁 检测到已上传的ENEX文件: {len(uploaded_files)} 个")
+            # 跳过导出步骤，直接进行转换
+            self._emit_progress(1, '导出印象笔记', 100, '使用已上传的ENEX文件')
+
+            # 直接进行转换
+            if not self._step_convert_to_markdown():
+                return False
+        else:
+            # 正常流程：先导出再转换
+            if not self._step_export_evernote():
+                return False
+
+            if not self._step_convert_to_markdown():
+                return False
+
+        if not self._step_setup_obsidian():
+            return False
+
+        if not self._step_post_process():
+            return False
+
+        return True
+
 
 if __name__ == '__main__':
     colorama.init(autoreset=True)
