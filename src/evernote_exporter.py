@@ -279,17 +279,32 @@ class EvernoteExporter:
 
             print(f"{Fore.BLUE}📤 导出为ENEX格式...")
             export_dir = temp_path / 'enex_output'
+            export_dir.mkdir(parents=True, exist_ok=True)
             export_cmd = ['evernote-backup', 'export', str(export_dir)]
 
+            print(f"{Fore.CYAN}   导出命令: {' '.join(export_cmd)}")
+            print(f"{Fore.CYAN}   导出目录: {export_dir}")
+            print(f"{Fore.CYAN}   工作目录: {self.temp_dir}")
+
             result = subprocess.run(export_cmd, cwd=self.temp_dir,
-                                  capture_output=True, text=True)
+                                  capture_output=True, text=True, env=env)
+
+            print(f"{Fore.CYAN}   导出退出码: {result.returncode}")
+            if result.stdout:
+                print(f"{Fore.CYAN}   导出输出: {result.stdout}")
+            if result.stderr:
+                print(f"{Fore.CYAN}   导出错误: {result.stderr}")
 
             if result.returncode != 0:
                 raise Exception(f"导出失败: {result.stderr}")
 
             enex_files = list(export_dir.glob('*.enex'))
+            print(f"{Fore.CYAN}   找到ENEX文件: {len(enex_files)}个")
 
             if not enex_files:
+                # 检查导出目录内容
+                all_files = list(export_dir.iterdir())
+                print(f"{Fore.YELLOW}   导出目录内容: {[f.name for f in all_files]}")
                 raise Exception("未找到导出的ENEX文件")
 
             print(f"{Fore.GREEN}✅ 导出完成，共 {len(enex_files)} 个文件")

@@ -24,6 +24,7 @@ from markdown_converter import MarkdownConverter
 from file_organizer import FileOrganizer
 from sync_manager import SyncManager
 from obsidian_manager import ObsidianManager
+from deduplication_manager import DeduplicationManager
 
 
 class UnifiedMigrator:
@@ -180,19 +181,37 @@ class UnifiedMigrator:
             print(f"\n{Fore.GREEN}🚀 开始迁移流程...")
             print("=" * 60)
 
+            # 初始化去重管理器
+            self.dedup_manager = DeduplicationManager(
+                self.config.get('output.obsidian_vault')
+            )
+
+            # 开始迁移会话
+            migration_id = f"migration_{int(time.time())}"
+            source_info = {
+                'backend': self.config.get('evernote_backend'),
+                'temp_directory': self.config.get('temp_directory')
+            }
+            self.dedup_manager.start_migration(migration_id, source_info)
+
             if not self._step_export_evernote():
+                self.dedup_manager.finish_migration(False, "导出失败")
                 return False
 
             if not self._step_convert_to_markdown():
+                self.dedup_manager.finish_migration(False, "转换失败")
                 return False
 
             if not self._step_setup_obsidian():
+                self.dedup_manager.finish_migration(False, "Obsidian设置失败")
                 return False
 
             if not self._step_post_process():
+                self.dedup_manager.finish_migration(False, "后处理失败")
                 return False
 
             self.stats['end_time'] = datetime.now()
+            self.dedup_manager.finish_migration(True)
             self._show_completion_summary()
 
             return True

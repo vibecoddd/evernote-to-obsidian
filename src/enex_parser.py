@@ -27,6 +27,9 @@ class Note:
     source: str = "Evernote"
     attachments: List[Dict[str, Any]] = field(default_factory=list)
     attributes: Dict[str, Any] = field(default_factory=dict)
+    # 新增字段用于去重
+    guid: Optional[str] = None  # Evernote的唯一标识符
+    content_hash: Optional[str] = None  # 内容哈希值
 
 
 @dataclass
@@ -129,11 +132,22 @@ class ENEXParser:
         source_url = self._get_element_text(note_elem, 'source-url')
         author = self._get_element_text(note_elem, 'author')
 
+        # 提取GUID（Evernote唯一标识符）
+        guid = None
+        guid_elem = note_elem.find('guid')
+        if guid_elem is not None and guid_elem.text:
+            guid = guid_elem.text.strip()
+
         # 提取笔记属性
         attributes = self._extract_note_attributes(note_elem)
 
         # 提取资源（附件）
         attachments = self._extract_resources(note_elem)
+
+        # 生成内容哈希值用于去重
+        import hashlib
+        content_for_hash = f"{title}\n{content}".strip()
+        content_hash = hashlib.md5(content_for_hash.encode('utf-8')).hexdigest()
 
         return Note(
             title=self._clean_text(title),
@@ -144,7 +158,9 @@ class ENEXParser:
             source_url=source_url,
             author=author,
             attachments=attachments,
-            attributes=attributes
+            attributes=attributes,
+            guid=guid,
+            content_hash=content_hash
         )
 
     def _get_element_text(self, parent: ET.Element, tag_name: str, default: str = '') -> str:
