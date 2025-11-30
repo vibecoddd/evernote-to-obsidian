@@ -437,6 +437,10 @@ class WebMigrationHandler(UnifiedMigrator):
         """运行迁移流程，支持跳过导出步骤"""
         print(f"🚀 开始迁移流程...")
 
+        # 初始化开始时间
+        from datetime import datetime
+        self.stats['start_time'] = datetime.now()
+
         # 检查是否有已上传的ENEX文件
         uploaded_files = self.config.get('input.enex_files', [])
 
