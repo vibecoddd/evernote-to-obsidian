@@ -31,23 +31,70 @@ class EvernoteExporter:
         """检查并安装依赖"""
         print(f"{Fore.BLUE}🔍 检查依赖...")
 
+        # 检查版本信息
         try:
             result = subprocess.run(['evernote-backup', '--version'],
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
-                print(f"{Fore.GREEN}✅ evernote-backup已安装")
-                return True
+                version = result.stdout.strip()
+                print(f"{Fore.GREEN}✅ evernote-backup已安装: {version}")
+
+                # 进一步验证功能完整性
+                help_result = subprocess.run(['evernote-backup', '--help'],
+                                           capture_output=True, text=True, timeout=10)
+                if help_result.returncode == 0:
+                    print(f"{Fore.GREEN}✅ evernote-backup功能验证通过")
+
+                    # 验证关键依赖（evernote-backup使用自己的evernote-plus包）
+                    try:
+                        import evernote.edam.type.ttypes
+                        print(f"{Fore.GREEN}✅ evernote依赖可用")
+                    except ImportError:
+                        print(f"{Fore.RED}❌ evernote依赖缺失，evernote-backup无法正常工作")
+
+                    return True
+                else:
+                    print(f"{Fore.RED}❌ evernote-backup功能异常")
+                    return False
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
+            print(f"{Fore.YELLOW}⚠️ evernote-backup未找到或超时")
+        except Exception as e:
+            print(f"{Fore.RED}❌ 检查evernote-backup时出错: {e}")
 
         print(f"{Fore.YELLOW}📦 正在安装evernote-backup...")
         try:
-            subprocess.run([sys.executable, '-m', 'pip', 'install', 'evernote-backup'],
-                         check=True, capture_output=True)
-            print(f"{Fore.GREEN}✅ evernote-backup安装成功")
-            return True
+            # 使用更详细的安装过程
+            install_result = subprocess.run([
+                sys.executable, '-m', 'pip', 'install',
+                '--upgrade', 'evernote-backup'
+            ], capture_output=True, text=True, timeout=120)
+
+            if install_result.returncode == 0:
+                print(f"{Fore.GREEN}✅ evernote-backup安装成功")
+
+                # 重新验证安装
+                verify_result = subprocess.run(['evernote-backup', '--version'],
+                                             capture_output=True, text=True, timeout=10)
+                if verify_result.returncode == 0:
+                    print(f"{Fore.GREEN}✅ 安装验证通过: {verify_result.stdout.strip()}")
+                    return True
+                else:
+                    print(f"{Fore.RED}❌ 安装验证失败")
+                    return False
+            else:
+                print(f"{Fore.RED}❌ 安装失败:")
+                print(f"   标准输出: {install_result.stdout}")
+                print(f"   错误输出: {install_result.stderr}")
+                return False
+
         except subprocess.CalledProcessError as e:
-            print(f"{Fore.RED}❌ 安装失败: {e}")
+            print(f"{Fore.RED}❌ 安装过程出错: {e}")
+            return False
+        except subprocess.TimeoutExpired:
+            print(f"{Fore.RED}❌ 安装超时，可能是网络问题")
+            return False
+        except Exception as e:
+            print(f"{Fore.RED}❌ 安装时发生意外错误: {e}")
             return False
 
     def get_credentials(self) -> tuple[str, str]:
@@ -181,16 +228,52 @@ class EvernoteExporter:
                                 stderr=subprocess.STDOUT, text=True,
                                 cwd=self.temp_dir, env=env) as proc:
 
+                sync_output = []
                 with tqdm(desc="同步进度", unit="notes") as pbar:
                     for line in proc.stdout:
                         line = line.strip()
+                        sync_output.append(line)
+                        print(f"📋 同步日志: {line}")
+
                         if line:
                             if "Downloaded" in line or "notes" in line:
                                 pbar.update(1)
                                 pbar.set_postfix_str(line[:50])
 
+                # 等待进程完成并获取返回码
+                proc.wait()
+
                 if proc.returncode != 0:
-                    raise Exception("同步失败")
+                    sync_error_output = "\n".join(sync_output[-10:])  # 获取最后10行输出
+                    error_msg = "同步失败"
+
+                    # 分析同步失败的具体原因
+                    sync_error_lower = sync_error_output.lower()
+                    if "connection" in sync_error_lower or "network" in sync_error_lower:
+                        error_msg += "\n\n🌐 网络连接问题："
+                        error_msg += "\n   ✓ 检查网络连接是否稳定"
+                        error_msg += "\n   ✓ 尝试禁用代理设置"
+                        error_msg += "\n   ✓ 检查防火墙设置"
+                    elif "timeout" in sync_error_lower:
+                        error_msg += "\n\n⏱️ 连接超时："
+                        error_msg += "\n   ✓ 网络连接可能不稳定"
+                        error_msg += "\n   ✓ 印象笔记服务器可能繁忙，请稍后重试"
+                    elif "authentication" in sync_error_lower or "token" in sync_error_lower:
+                        error_msg += "\n\n🔐 认证问题："
+                        error_msg += "\n   ✓ 登录会话可能已过期，请重新尝试"
+                        error_msg += "\n   ✓ 检查账号是否被锁定"
+                    elif "rate limit" in sync_error_lower or "too many requests" in sync_error_lower:
+                        error_msg += "\n\n🚦 API限制："
+                        error_msg += "\n   ✓ 请求过于频繁，请等待5-10分钟后重试"
+                        error_msg += "\n   ✓ 或尝试降低并发设置"
+                    else:
+                        error_msg += "\n\n🔧 evernote-backup插件问题："
+                        error_msg += "\n   ✓ 检查插件是否正确安装: pip show evernote-backup"
+                        error_msg += "\n   ✓ 尝试重新安装: pip install --upgrade evernote-backup"
+                        error_msg += "\n   ✓ 检查插件版本兼容性"
+
+                    error_msg += f"\n\n📋 详细错误输出:\n{sync_error_output}"
+                    raise Exception(error_msg)
 
             print(f"{Fore.GREEN}✅ 笔记同步完成")
 
