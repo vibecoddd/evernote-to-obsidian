@@ -228,10 +228,10 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化默认路径
-    const homeDir = navigator.platform.includes('Win') ? 'C:\\Users\\' +
-        (process.env.USERNAME || 'User') + '\\Documents' :
-        (process.env.HOME || '/home/' + process.env.USER || '/home/user') + '/Documents';
+    // 初始化默认路径（浏览器兼容方式）
+    const homeDir = navigator.platform.includes('Win') ?
+        'C:\\Users\\User\\Documents' :
+        '/home/user/Documents';
 
     document.getElementById('vault_path').value = homeDir + '/ObsidianVault';
 

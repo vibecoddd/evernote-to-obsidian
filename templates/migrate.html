@@ -18,13 +18,13 @@
                         <div class="card border h-100 mode-card" data-mode="auto">
                             <div class="card-body text-center">
                                 <i class="fas fa-magic fa-3x text-primary mb-3"></i>
-                                <h5>自动导出模式</h5>
+                                <h5>自动导出模式 <span class="badge bg-success ms-2">推荐</span></h5>
                                 <p class="text-muted">
                                     自动连接印象笔记服务器，导出所有笔记数据并进行转换。
-                                    适合首次迁移或完整备份。
+                                    <strong>需要输入印象笔记账号密码。</strong>
                                 </p>
-                                <button class="btn btn-primary" onclick="selectMode('auto')">
-                                    <i class="fas fa-download me-1"></i>选择此模式
+                                <button class="btn btn-primary btn-lg" onclick="selectMode('auto')">
+                                    <i class="fas fa-download me-1"></i>输入账号开始迁移
                                 </button>
                             </div>
                         </div>
@@ -61,17 +61,19 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="username" class="form-label">
-                                    <i class="fas fa-user me-1"></i>用户名/邮箱
+                                    <i class="fas fa-user me-1"></i>印象笔记账号（邮箱）
                                 </label>
-                                <input type="text" class="form-control" id="username" required>
+                                <input type="email" class="form-control" id="username" required
+                                       placeholder="请输入印象笔记登录邮箱">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="password" class="form-label">
-                                    <i class="fas fa-lock me-1"></i>密码
+                                    <i class="fas fa-lock me-1"></i>印象笔记密码
                                 </label>
-                                <input type="password" class="form-control" id="password" required>
+                                <input type="password" class="form-control" id="password" required
+                                       placeholder="请输入印象笔记登录密码">
                             </div>
                         </div>
                     </div>
