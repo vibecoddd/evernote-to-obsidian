@@ -135,22 +135,72 @@ python3 test_export.py
 
 ---
 
+## 🔧 同步失败专项修复
+
+### 导出失败：同步失败
+
+**🎯 根本原因**：代理设置干扰evernote-backup与印象笔记服务器的连接
+
+**💡 解决方案**：
+
+1. **推荐方案 - 禁用代理**：
+```bash
+# 临时禁用所有代理设置
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
+
+# 然后运行迁移
+python migrate.py
+```
+
+2. **Web界面用户**：
+重启Web应用前先禁用代理：
+```bash
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
+python web_app.py
+```
+
+3. **如需保持代理**：
+修改代理配置支持印象笔记域名直连：
+```bash
+export NO_PROXY="app.yinxiang.com,sandbox.evernote.com"
+```
+
+### 💻 调试工具
+
+```bash
+# 诊断同步问题
+python debug_sync_failure.py
+
+# 测试网络连接
+python debug_evernote.py
+```
+
+---
+
 ## 🚀 快速修复命令
 
 如果您确定是依赖或配置问题，可以尝试以下一键修复：
 
 ```bash
-# 1. 重新安装所有依赖
+# 1. 禁用代理并重新安装依赖
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
 pip install -r requirements.txt --upgrade
 
 # 2. 验证evernote-backup
 evernote-backup --version
 
 # 3. 运行调试脚本
-python3 debug_evernote.py
+python3 debug_sync_failure.py
 
 # 4. 重新尝试迁移
 python3 migrate.py --wizard
 ```
+
+## 📞 获取帮助
+
+如果问题仍未解决：
+1. 运行 `python debug_sync_failure.py` 获取详细诊断
+2. 查看 [evernote-backup文档](https://github.com/vzhd1701/evernote-backup)
+3. 在GitHub提交issue并附上诊断结果
 
 祝您迁移成功！🎉

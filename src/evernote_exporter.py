@@ -108,13 +108,23 @@ class EvernoteExporter:
                 '--backend', self.backend,
                 '--user', username,
                 '--password', password,
+                '--use-system-ssl-ca',  # 使用系统SSL证书
                 '--force'
             ]
 
             try:
+                # 创建无代理环境
+                env = os.environ.copy()
+                env.pop('HTTP_PROXY', None)
+                env.pop('HTTPS_PROXY', None)
+                env.pop('http_proxy', None)
+                env.pop('https_proxy', None)
+
+                print(f"{Fore.CYAN}   🌐 使用直连网络（跳过代理）")
+
                 with subprocess.Popen(init_cmd,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    text=True, cwd=self.temp_dir) as proc:
+                                    text=True, cwd=self.temp_dir, env=env) as proc:
 
                     # 等待命令完成
                     stdout, stderr = proc.communicate(timeout=60)
@@ -143,11 +153,17 @@ class EvernoteExporter:
             print(f"{Fore.GREEN}✅ 数据库初始化成功")
 
             print(f"{Fore.BLUE}🔄 同步笔记数据...")
-            sync_cmd = ['evernote-backup', 'sync']
+            sync_cmd = [
+                'evernote-backup', 'sync',
+                '--max-download-workers', '2',      # 降低并发数
+                '--max-chunk-results', '50',        # 减少chunk大小
+                '--network-retry-count', '100',     # 增加重试次数
+                '--use-system-ssl-ca'               # 使用系统SSL证书
+            ]
 
             with subprocess.Popen(sync_cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True,
-                                cwd=self.temp_dir) as proc:
+                                cwd=self.temp_dir, env=env) as proc:
 
                 with tqdm(desc="同步进度", unit="notes") as pbar:
                     for line in proc.stdout:
