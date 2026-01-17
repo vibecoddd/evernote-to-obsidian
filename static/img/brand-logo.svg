@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- 背景 -->
+  <rect width="200" height="200" fill="#ffffff" rx="10" ry="10"/>
+  
+  <!-- 笔记本图标（代表印象笔记） -->
+  <rect x="40" y="30" width="120" height="140" fill="#2383e2" rx="8" ry="8"/>
+  <rect x="40" y="60" width="120" height="3" fill="#ffffff" opacity="0.7"/>
+  <rect x="40" y="80" width="120" height="3" fill="#ffffff" opacity="0.7"/>
+  <rect x="40" y="100" width="120" height="3" fill="#ffffff" opacity="0.7"/>
+  <rect x="40" y="120" width="90" height="3" fill="#ffffff" opacity="0.7"/>
+  
+  <!-- 迁移箭头 -->
+  <path d="M120,50 L140,70 L120,90" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="140,70 150,70 140,80 140,60" fill="#ffffff"/>
+  
+  <!-- 导出文档图标 -->
+  <path d="M70,150 L70,170 L130,170 L130,150 Z" fill="#ffffff"/>
+  <path d="M85,140 L115,140 L115,150 L85,150 Z" fill="#ffffff"/>
+  <rect x="95" y="130" width="10" height="10" fill="#ffffff"/>
+</svg>

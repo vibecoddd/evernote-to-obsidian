@@ -25,7 +25,11 @@ def test_export():
     config = {
         'evernote_backend': 'china',  # 默认中国版，可以改为'international'
         'temp_directory': str(Path(tempfile.gettempdir()) / 'evernote_test'),
-        'remember_credentials': False
+        'remember_credentials': False,
+        'evernote_credentials': {
+            'username': 'your username',
+            'password': 'your pwd'
+        }
     }
 
     try:
@@ -40,8 +44,9 @@ def test_export():
             print("❌ 依赖检查失败")
             return False
 
-        print("\n⚠️ 注意: 以下步骤需要您的印象笔记账号密码")
-        print("如果您不想继续，请按 Ctrl+C 退出")
+        print("⚠️ 注意: 以下步骤将使用提供的测试账号")
+        print(f"📧 账号: {config['evernote_credentials']['username']}")
+        print(f"🔒 密码: {config['evernote_credentials']['password']}")
         input("\n按回车键继续...")
 
         # 尝试导出

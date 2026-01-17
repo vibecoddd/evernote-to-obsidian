@@ -16,42 +16,37 @@
 
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="notion-theme">
     <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-sync-alt me-2"></i>
-                印象笔记迁移工具
+                <img src="{{ url_for('static', filename='img/brand-logo.svg') }}" alt="品牌logo" height="30" class="me-2">
+                <span class="text-dark fw-semibold">印象笔记迁移工具</span>
             </a>
 
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('index') }}">
-                    <i class="fas fa-home me-1"></i>首页
+                <a class="nav-link text-muted" href="{{ url_for('index') }}">
+                    <i class="fas fa-home me-1"></i>
+                    <span>首页</span>
                 </a>
-                <a class="nav-link" href="{{ url_for('config_page') }}">
-                    <i class="fas fa-cog me-1"></i>配置
-                </a>
-                <a class="nav-link" href="{{ url_for('migrate_page') }}">
-                    <i class="fas fa-play me-1"></i>迁移
-                </a>
+
             </div>
         </div>
     </nav>
 
     <!-- 主要内容区域 -->
-    <main class="container-fluid py-4">
-        {% block content %}{% endblock %}
+    <main class="container py-5">
+        <div class="max-w-3xl mx-auto">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
     <!-- 页脚 -->
-    <footer class="bg-light py-3 mt-5">
+    <footer class="py-4 mt-5 border-top">
         <div class="container text-center">
             <small class="text-muted">
-                印象笔记到Obsidian迁移工具 © 2024 |
-                <a href="https://github.com" target="_blank" class="text-decoration-none">
-                    <i class="fab fa-github"></i> GitHub
-                </a>
+                印象笔记到Obsidian迁移工具 © 2024
             </small>
         </div>
     </footer>

@@ -96,10 +96,12 @@ class ENEXParser:
         Returns:
             笔记本名称
         """
-        # 尝试从export-date属性获取
+        # 尝试从<notebook><name>元素获取
         notebook_elem = root.find('.//notebook')
-        if notebook_elem is not None and notebook_elem.text:
-            return self._clean_text(notebook_elem.text)
+        if notebook_elem is not None:
+            name_elem = notebook_elem.find('name')
+            if name_elem is not None and name_elem.text:
+                return self._clean_text(name_elem.text)
 
         # 如果没有找到，使用默认名称
         return "Default Notebook"
@@ -131,6 +133,14 @@ class ENEXParser:
         # 提取其他属性
         source_url = self._get_element_text(note_elem, 'source-url')
         author = self._get_element_text(note_elem, 'author')
+        
+        # 从note-attributes中提取额外属性
+        note_attrs = note_elem.find('note-attributes')
+        if note_attrs is not None:
+            if not source_url:
+                source_url = self._get_element_text(note_attrs, 'source-url')
+            if not author:
+                author = self._get_element_text(note_attrs, 'author')
 
         # 提取GUID（Evernote唯一标识符）
         guid = None

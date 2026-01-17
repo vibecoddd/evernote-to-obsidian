@@ -107,6 +107,156 @@ class WebMigrator:
                     'error': str(e)
                 })
 
+        @self.app.route('/api/start_export', methods=['POST'])
+        def start_export():
+            """开始导出ENEX文件"""
+            try:
+                print(f"收到迁移请求")
+                config_data = request.get_json()
+                print(f"配置数据: {config_data}")
+
+                if not config_data:
+                    return jsonify({
+                        'success': False,
+                        'error': '没有接收到配置数据'
+                    })
+
+                # 生成唯一的任务ID
+                task_id = str(uuid.uuid4())
+                session['task_id'] = task_id
+                print(f"生成任务ID: {task_id}")
+
+                # 获取导出目录并处理
+                export_dir = config_data.get('output', {}).get('enex_directory', '/tmp/evernote_export')
+                
+                # 处理Mac系统下的'~'路径
+                if export_dir.startswith('~'):
+                    export_dir = os.path.expanduser(export_dir)
+                
+                # 创建导出目录（如果不存在）
+                Path(export_dir).mkdir(parents=True, exist_ok=True)
+                print(f"创建导出目录: {export_dir}")
+                
+                # 创建配置对象
+                config = Config()
+                # 设置输出目录
+                config.set('output.enex_directory', export_dir)
+                # 设置印象笔记配置
+                config.set('evernote_backend', config_data.get('evernote_backend', 'china'))
+                config.set('evernote_credentials', config_data.get('evernote_credentials', {}))
+
+                # 在后台线程中运行导出
+                export_thread = threading.Thread(
+                    target=self._run_export_task,
+                    args=(task_id, config)
+                )
+                export_thread.daemon = True
+                export_thread.start()
+
+                return jsonify({
+                    'success': True,
+                    'task_id': task_id,
+                    'message': '导出任务已开始'
+                })
+
+            except Exception as e:
+                print(f"导出启动错误: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+
+        @self.app.route('/api/export_enex', methods=['POST'])
+        def export_enex():
+            """导出ENEX文件（简化版本）"""
+            try:
+                print(f"收到导出ENEX请求")
+                config_data = request.get_json()
+                print(f"配置数据: {config_data}")
+
+                if not config_data:
+                    return jsonify({
+                        'success': False,
+                        'error': '没有接收到配置数据'
+                    })
+
+                # 生成唯一的任务ID
+                task_id = str(uuid.uuid4())
+                session['task_id'] = task_id
+                print(f"生成任务ID: {task_id}")
+
+                # 获取导出目录并处理
+                export_dir = config_data.get('output', {}).get('enex_directory', '/tmp/evernote_export')
+                
+                # 处理Mac系统下的'~'路径
+                if export_dir.startswith('~'):
+                    export_dir = os.path.expanduser(export_dir)
+                
+                # 创建导出目录（如果不存在）
+                from pathlib import Path
+                Path(export_dir).mkdir(parents=True, exist_ok=True)
+                print(f"创建导出目录: {export_dir}")
+                
+                # 创建配置对象
+                config = Config()
+                # 设置输出目录
+                config.set('output.enex_directory', export_dir)
+                # 设置印象笔记配置
+                config.set('evernote_backend', config_data.get('evernote_backend', 'china'))
+                config.set('evernote_credentials', config_data.get('evernote_credentials', {}))
+
+                # 导入必要的模块
+                from evernote_exporter import EvernoteExporter
+                import shutil
+                
+                # 创建导出器并执行导出
+                exporter = EvernoteExporter(config.get_all())
+                
+                # 检查依赖
+                if not exporter.check_dependencies():
+                    return jsonify({
+                        'success': False,
+                        'error': '依赖检查失败'
+                    })
+                
+                # 执行导出
+                enex_files = exporter.export_notes()
+                
+                if not enex_files:
+                    return jsonify({
+                        'success': False,
+                        'error': '没有导出任何ENEX文件'
+                    })
+                
+                # 将导出的ENEX文件复制到用户指定的目录
+                copied_files = []
+                for enex_file in enex_files:
+                    source_file = Path(enex_file)
+                    dest_file = Path(export_dir) / source_file.name
+                    
+                    try:
+                        shutil.copy2(source_file, dest_file)
+                        copied_files.append(str(dest_file))
+                        print(f"📋 复制ENEX文件: {source_file.name} -> {dest_file}")
+                    except Exception as e:
+                        print(f"❌ 复制ENEX文件失败: {e}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'ENEX导出成功',
+                    'enex_files': copied_files,
+                    'export_dir': export_dir
+                })
+
+            except Exception as e:
+                print(f"导出错误: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                })
+
         @self.app.route('/api/migration_status/<task_id>')
         def migration_status(task_id):
             """获取迁移状态"""
@@ -244,6 +394,128 @@ class WebMigrator:
             })
 
             self.socketio.emit('migration_error', {
+                'task_id': task_id,
+                'error': str(e)
+            }, room=task_id)
+            
+    def _run_export_task(self, task_id: str, config: Config):
+        """在后台运行导出ENEX任务"""
+        try:
+            print(f"🚀 开始导出ENEX任务 {task_id}")
+
+            # 初始化任务状态
+            self.active_migrations[task_id] = {
+                'status': 'running',
+                'progress': 0,
+                'message': '正在开始导出...',
+                'start_time': datetime.now().isoformat(),
+                'stats': {
+                    'total_notes': 0,
+                    'exported_files': [],
+                    'errors': []
+                }
+            }
+
+            print(f"📊 初始化任务状态: {self.active_migrations[task_id]}")
+
+            # 发送初始进度更新
+            self.socketio.emit('export_progress', {
+                'task_id': task_id,
+                'progress': 0,
+                'message': '正在开始导出...'
+            }, room=task_id)
+
+            # 导入必要的模块
+            from evernote_exporter import EvernoteExporter
+
+            # 发送进度更新
+            self.socketio.emit('export_progress', {
+                'task_id': task_id,
+                'progress': 10,
+                'message': '正在检查依赖...'
+            }, room=task_id)
+            
+            # 创建导出器
+            exporter = EvernoteExporter(config.get_all())
+            
+            # 检查依赖
+            if not exporter.check_dependencies():
+                self.active_migrations[task_id].update({
+                    'status': 'failed',
+                    'message': '依赖检查失败'
+                })
+                self.socketio.emit('export_error', {
+                    'task_id': task_id,
+                    'error': '依赖检查失败'
+                }, room=task_id)
+                return
+            
+            # 发送进度更新
+            self.socketio.emit('export_progress', {
+                'task_id': task_id,
+                'progress': 30,
+                'message': '正在初始化导出器...'
+            }, room=task_id)
+            
+            # 执行导出
+            self.socketio.emit('export_progress', {
+                'task_id': task_id,
+                'progress': 50,
+                'message': '正在导出笔记数据...'
+            }, room=task_id)
+            
+            enex_files = exporter.export_notes()
+            
+            if not enex_files:
+                self.active_migrations[task_id].update({
+                    'status': 'failed',
+                    'message': '没有导出任何ENEX文件'
+                })
+                self.socketio.emit('export_error', {
+                    'task_id': task_id,
+                    'error': '没有导出任何ENEX文件'
+                }, room=task_id)
+                return
+            
+            # 发送进度更新
+            self.socketio.emit('export_progress', {
+                'task_id': task_id,
+                'progress': 80,
+                'message': f'正在保存ENEX文件...'
+            }, room=task_id)
+            
+            # 更新任务状态
+            self.active_migrations[task_id].update({
+                'status': 'completed',
+                'progress': 100,
+                'message': '导出完成',
+                'end_time': datetime.now().isoformat(),
+                'stats': {
+                    'total_notes': sum(len(exporter._parse_enex_file(f)) for f in enex_files),
+                    'exported_files': enex_files
+                }
+            })
+            
+            # 发送完成事件
+            self.socketio.emit('export_completed', {
+                'task_id': task_id,
+                'success': True,
+                'enex_path': enex_files[0] if enex_files else '',
+                'result': self.active_migrations[task_id]
+            }, room=task_id)
+            
+        except Exception as e:
+            print(f"❌ 导出任务错误: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            self.active_migrations[task_id].update({
+                'status': 'failed',
+                'message': f'导出错误: {str(e)}',
+                'end_time': datetime.now().isoformat()
+            })
+            
+            self.socketio.emit('export_error', {
                 'task_id': task_id,
                 'error': str(e)
             }, room=task_id)

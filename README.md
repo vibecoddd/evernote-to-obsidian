@@ -1,14 +1,11 @@
-# 🚀 印象笔记到Obsidian一键迁移工具
+# 🚀 印象笔记ENEX导出工具
 
-**一键完成印象笔记到Obsidian的完整迁移，包括导出、转换和配置！**
+**一键从印象笔记导出ENEX格式文件，方便与其他应用（如Obsidian）进行数据迁移！**
 
 ## ✨ 核心特性
 
 ### 🔄 全自动流程
-- **自动导出**: 集成evernote-backup，自动从印象笔记导出数据
-- **智能转换**: HTML到Markdown的完美转换
-- **自动配置**: 一键创建和配置Obsidian库
-- **即开即用**: 迁移完成后自动启动Obsidian
+- **自动导出**: 集成evernote-backup，自动从印象笔记导出ENEX格式数据
 
 ### 🎯 完整保留
 - **📁 文件夹结构**: 完整保留原有笔记本分类
@@ -19,8 +16,8 @@
 ### 🛡️ 安全可靠
 - **智能检测**: 自动检查并安装依赖
 - **错误恢复**: 完善的错误处理机制
-- **进度显示**: 实时显示迁移进度
-- **备份保护**: 自动备份现有文件
+- **进度显示**: 实时显示导出进度
+- **备份保护**: 自动创建导出目录，避免文件冲突
 
 ## 🚀 两种使用方式
 
@@ -49,28 +46,25 @@ python3 start_web.py --help
 # 1. 安装依赖（同上）
 pip install -r requirements.txt
 
-# 2. 一键迁移
+# 2. 一键导出
 python3 migrate.py
 ```
 
 无论使用哪种方式，工具都会自动：
 1. 🔐 引导您输入印象笔记账号
-2. 📤 自动导出所有笔记数据
-3. 🎯 智能转换为Markdown格式
-4. 🏗️ 创建并配置Obsidian库
-5. 🚀 自动启动Obsidian
+2. 📤 自动导出所有笔记为ENEX格式文件
+3. 📁 自动创建导出目录，整理ENEX文件
 
 ## 🌐 Web界面特性
 
 ### ✨ 友好的用户界面
 - **响应式设计**: 完美支持PC、平板、手机
-- **实时进度**: WebSocket实时显示迁移进度
+- **实时进度**: WebSocket实时显示导出进度
 - **直观配置**: 图形化配置向导，无需记忆参数
-- **文件上传**: 支持直接拖拽上传ENEX文件
 
 ### 🎯 高级功能
 - **配置保存**: 保存和管理多套配置方案
-- **历史记录**: 查看所有迁移历史和统计
+- **历史记录**: 查看所有导出历史和统计
 - **错误处理**: 友好的错误提示和解决方案
 - **深色主题**: 自动适配系统主题
 
@@ -80,19 +74,19 @@ python3 migrate.py
 ```bash
 python3 migrate.py --wizard
 ```
-交互式配置，适合首次使用
+交互式配置导出选项，适合首次使用
 
 ### ⚡ 快速自动模式
 ```bash
 python3 migrate.py --auto
 ```
-使用默认设置，快速执行
+使用默认设置，快速导出ENEX文件
 
 ### 📄 使用配置文件
 ```bash
 python3 migrate.py --config my_config.yaml
 ```
-使用自定义配置文件
+使用自定义配置文件进行导出
 
 ### ❓ 查看帮助
 ```bash
@@ -103,51 +97,38 @@ python3 migrate.py --help
 
 ### 📱 界面导航
 - **首页**: 功能概览和快速开始
-- **配置**: 详细的迁移配置设置
-- **迁移**: 开始迁移并实时监控进度
-- **结果**: 查看迁移历史和详细统计
+- **配置**: 详细的导出配置设置
+- **迁移**: 开始导出并实时监控进度
+- **结果**: 查看导出历史和详细统计
 
 ### 🚀 快速开始
 1. **启动应用**: `python3 web_app.py`
 2. **打开浏览器**: 访问 http://localhost:5000
-3. **选择模式**:
-   - 自动导出：输入印象笔记账号，自动导出并转换
-   - 文件上传：直接上传已有的ENEX文件进行转换
-4. **配置设置**: 根据需要调整转换参数
-5. **开始迁移**: 实时查看进度，自动完成所有步骤
+3. **选择导出方式**:
+   - 自动导出：输入印象笔记账号，自动导出ENEX文件
+4. **配置设置**: 根据需要调整导出参数（如导出目录等）
+5. **开始导出**: 实时查看进度，自动完成所有步骤
 
 ### 💡 Web界面优势
 - ✅ **零学习成本**: 图形化界面，点击即用
-- ✅ **实时反馈**: WebSocket实时显示详细进度
-- ✅ **配置管理**: 保存常用配置，一键复用
-- ✅ **历史追踪**: 完整的迁移历史和统计信息
+- ✅ **实时反馈**: WebSocket实时显示详细导出进度
+- ✅ **配置管理**: 保存常用导出配置，一键复用
+- ✅ **历史追踪**: 完整的导出历史和统计信息
 - ✅ **多设备支持**: 手机、平板、电脑均可使用
 
-## 🎯 迁移流程
+## 🎯 导出流程
 
-工具将按以下4个步骤自动执行：
+工具将按以下2个步骤自动执行：
 
 ### 📤 步骤1: 导出印象笔记
 - 自动检测并安装evernote-backup
 - 连接到印象笔记服务器
 - 下载并导出所有笔记为ENEX格式
 
-### 📝 步骤2: 转换为Markdown
-- 解析ENEX文件结构
-- 转换HTML内容为Markdown
-- 提取并组织图片附件
-- 生成笔记索引文件
-
-### 🏗️ 步骤3: 配置Obsidian库
-- 创建Obsidian库目录结构
-- 配置最佳实践设置
-- 创建欢迎笔记和模板
-- 推荐有用插件
-
-### 🔧 步骤4: 完成配置
+### 🔧 步骤2: 完成导出
 - 清理临时文件
-- 自动启动Obsidian
-- 显示迁移统计信息
+- 整理ENEX文件到指定目录
+- 显示导出统计信息
 
 ## 📋 配置向导
 
@@ -162,87 +143,38 @@ python3 migrate.py --help
 2) Evernote国际版 (evernote.com)
 请选择 [1]:
 
-2. 设置Obsidian库路径:
-Obsidian库路径 [/Users/username/Documents/ObsidianVault]:
+2. 设置ENEX导出路径:
+ENEX导出路径 [默认路径]:
 
 3. 高级选项:
-完成后自动打开Obsidian? [Y/n]:
 保留临时文件(用于调试)? [y/N]:
 
 ✅ 配置完成
 ```
 
-## 🔧 转换后效果
 
-### 📁 文件夹结构
-```
-ObsidianVault/
-├── 📂 工作笔记/                # 原笔记本1
-│   ├── 📄 会议记录.md
-│   ├── 📄 项目计划.md
-│   └── 📄 工作笔记_Index.md     # 自动生成的索引
-├── 📂 学习资料/                # 原笔记本2
-│   ├── 📄 读书笔记.md
-│   └── 📄 学习资料_Index.md
-├── 📂 attachments/             # 所有附件
-│   ├── 🖼️ image1.jpg
-│   └── 📎 document.pdf
-├── 📂 templates/               # 笔记模板
-│   └── 📄 日记模板.md
-├── 📄 欢迎使用Obsidian.md       # 使用指南
-└── 🔧 .obsidian/              # Obsidian配置
-```
 
-### 📄 Markdown格式
-转换后的笔记包含完整元数据：
+## 🎉 导出完成后
 
-```markdown
----
-title: "会议记录"
-created: "2023-12-01 10:30:00"
-updated: "2023-12-01 15:45:00"
-tags: ["工作", "会议"]
-notebook: "工作笔记"
-source: "Evernote"
----
-
-# 会议记录
-
-## 会议议题
-1. 项目进度回顾
-2. 下周工作安排
-
-## 决议事项
-- [x] 完成需求文档
-- [ ] 准备演示材料
-
-![[attachments/meeting_photo.jpg]]
-
-[相关链接](http://example.com)
-```
-
-## 🎉 迁移完成后
-
-迁移成功后，您将看到：
+导出成功后，您将看到：
 
 ```
-🎉 迁移完成！
+🎉 导出完成！
 ============================================================
 
 📊 统计信息:
  ⏱️ 总耗时: 0:05:23
  📄 总笔记数: 245
- ✅ 成功转换: 243
+ ✅ 成功导出: 245
  📎 附件数量: 67
 
 📁 输出位置:
- /Users/username/Documents/ObsidianVault
+ /Users/username/Documents/EvernoteExport
 
 🚀 下一步:
- 1. 在Obsidian中打开您的库
- 2. 浏览转换后的笔记
- 3. 根据需要安装推荐插件
- 4. 开始您的知识管理之旅！
+ 1. 查看导出的ENEX文件
+ 2. 使用其他工具（如Obsidian Importer）导入ENEX文件
+ 3. 开始您的知识管理之旅！
 ```
 
 ## 💡 实用提示
@@ -260,22 +192,32 @@ source: "Evernote"
 
 ### 🚀 性能优化
 - 智能增量同步避免重复处理
-- 并行处理提高转换速度
+- 并行处理提高导出速度
 - 内存优化处理大型文件
+
+### 📤 如何将ENEX文件导入到Obsidian
+
+如果您希望将导出的ENEX文件导入到Obsidian，可以使用Obsidian的Importer插件：
+
+1. 打开Obsidian
+2. 进入设置 → 社区插件 → 安装并启用 "Importer" 插件
+3. 使用命令面板或功能区图标打开Importer插件
+4. 在文件格式中选择 "Evernote (.enex)"
+5. 选择您使用本工具导出的ENEX文件位置
+6. 点击导入，等待导入完成
+
+更多详细信息请访问：[https://help.obsidian.md/import/evernote](https://help.obsidian.md/import/evernote)
 
 ## ❓ 常见问题
 
 ### Q: 印象笔记中国版无法导出怎么办？
 A: 工具自动集成evernote-backup解决方案，无需手动操作。
 
-### Q: 转换需要多长时间？
+### Q: 导出需要多长时间？
 A: 取决于笔记数量，通常每100篇笔记需要1-2分钟。
 
 ### Q: 是否支持增量更新？
 A: 是的，再次运行工具只会处理新增和修改的内容。
-
-### Q: Obsidian没有自动打开？
-A: 工具会显示手动打开指南，或者可以先安装Obsidian。
 
 ## 🛠️ 高级用法
 
@@ -309,16 +251,14 @@ gunicorn -w 4 -b 0.0.0.0:8080 web_app:app
 # custom_config.yaml
 evernote_backend: "china"              # 或 "international"
 output:
-  obsidian_vault: "/path/to/vault"     # 自定义库路径
-migration:
-  auto_open_obsidian: true             # 自动打开Obsidian
-  create_welcome_note: true            # 创建欢迎笔记
+  enex_export_path: "/path/to/export"  # 自定义ENEX导出路径
+export:
   keep_temp_files: false               # 是否保留临时文件
 ```
 
 ### 批量处理
 ```bash
-# 处理多个ENEX文件
+# 导出笔记
 python3 migrate.py --config batch_config.yaml
 ```
 
@@ -336,13 +276,12 @@ python3 migrate.py --config batch_config.yaml
 
 特别感谢以下开源项目：
 - [evernote-backup](https://github.com/vzhd1701/evernote-backup) - 印象笔记导出
-- [html2text](https://github.com/Alir3z4/html2text) - HTML转Markdown
 - [click](https://click.palletsprojects.com/) - 命令行界面
 - [tqdm](https://tqdm.github.io/) - 进度条显示
 
 ---
 
-**🎯 现在就开始您的印象笔记到Obsidian迁移之旅吧！**
+**🎯 现在就开始您的印象笔记ENEX导出之旅吧！**
 
 ### 🌐 推荐: Web界面模式
 ```bash

@@ -33,14 +33,17 @@ class EvernoteExporter:
 
         # 检查版本信息
         try:
-            result = subprocess.run(['evernote-backup', '--version'],
+            # 使用Python模块方式调用，避免PATH问题
+            evernote_backup_cmd = [sys.executable, '-m', 'evernote_backup']
+            
+            result = subprocess.run(evernote_backup_cmd + ['--version'],
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 version = result.stdout.strip()
                 print(f"{Fore.GREEN}✅ evernote-backup已安装: {version}")
 
                 # 进一步验证功能完整性
-                help_result = subprocess.run(['evernote-backup', '--help'],
+                help_result = subprocess.run(evernote_backup_cmd + ['--help'],
                                            capture_output=True, text=True, timeout=10)
                 if help_result.returncode == 0:
                     print(f"{Fore.GREEN}✅ evernote-backup功能验证通过")
@@ -146,12 +149,22 @@ class EvernoteExporter:
         username, password = self.get_credentials()
 
         try:
+            print(f"{Fore.BLUE}🗑️  清空旧数据库...")
+            # 删除旧的数据库文件，确保每次导出都是全新的
+            db_files = list(temp_path.glob('*.db'))
+            for db_file in db_files:
+                try:
+                    db_file.unlink()
+                    print(f"{Fore.GREEN}   ✅ 删除旧数据库文件: {db_file.name}")
+                except Exception as e:
+                    print(f"{Fore.YELLOW}   ⚠️  删除旧数据库文件 {db_file.name} 时出错: {e}")
+            
             print(f"{Fore.BLUE}📊 初始化数据库...")
             print(f"{Fore.CYAN}   后端: {self.backend}")
             print(f"{Fore.CYAN}   用户: {username}")
 
             init_cmd = [
-                'evernote-backup', 'init-db',
+                sys.executable, '-m', 'evernote_backup', 'init-db',
                 '--backend', self.backend,
                 '--user', username,
                 '--password', password,
@@ -217,7 +230,7 @@ class EvernoteExporter:
 
             print(f"{Fore.BLUE}🔄 同步笔记数据...")
             sync_cmd = [
-                'evernote-backup', 'sync',
+                sys.executable, '-m', 'evernote_backup', 'sync',
                 '--max-download-workers', '2',      # 降低并发数
                 '--max-chunk-results', '50',        # 减少chunk大小
                 '--network-retry-count', '100',     # 增加重试次数
@@ -280,7 +293,7 @@ class EvernoteExporter:
             print(f"{Fore.BLUE}📤 导出为ENEX格式...")
             export_dir = temp_path / 'enex_output'
             export_dir.mkdir(parents=True, exist_ok=True)
-            export_cmd = ['evernote-backup', 'export', str(export_dir)]
+            export_cmd = [sys.executable, '-m', 'evernote_backup', 'export', str(export_dir)]
 
             print(f"{Fore.CYAN}   导出命令: {' '.join(export_cmd)}")
             print(f"{Fore.CYAN}   导出目录: {export_dir}")
