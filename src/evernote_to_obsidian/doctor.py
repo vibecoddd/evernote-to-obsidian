@@ -38,9 +38,12 @@ def run_doctor(
     app_data_dir: str | Path | None = None,
     evernote_command: str = "evernote-backup",
 ) -> DoctorReport:
+    app_data_check = _write_check("app_data_write", Path(app_data_dir or Path.home() / ".evernote2obsidian"))
+    if app_data_dir is None and app_data_check.status == "error":
+        app_data_check.status = "warning"
     checks = [
         _python_version(),
-        _write_check("app_data_write", Path(app_data_dir or Path.home() / ".evernote2obsidian")),
+        app_data_check,
     ]
     if vault_path:
         checks.append(_write_check("vault_write", Path(vault_path)))

@@ -183,7 +183,7 @@ class FileOrganizer:
             elif duplicate_strategy == 'rename':
                 filename = self._get_unique_filename(full_path.parent, base_name, extension)
 
-        return os.path.join(folder_path, filename) if folder_path else filename
+        return filename
 
     def _get_unique_filename(self, directory: Path, base_name: str, extension: str) -> str:
         """

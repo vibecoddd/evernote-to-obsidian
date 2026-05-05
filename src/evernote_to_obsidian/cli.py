@@ -57,10 +57,17 @@ def migrate(
 @click.argument("files", type=click.Path(exists=True, dir_okay=False, path_type=Path), nargs=-1, required=True)
 @click.option("--vault", type=click.Path(file_okay=False, path_type=Path), required=True)
 @click.option("--task-id", default=None)
+@click.option("--app-data", "command_app_data", type=click.Path(file_okay=False, path_type=Path), default=None)
 @click.pass_context
-def import_enex(ctx: click.Context, files: tuple[Path, ...], vault: Path, task_id: str | None) -> None:
+def import_enex(
+    ctx: click.Context,
+    files: tuple[Path, ...],
+    vault: Path,
+    task_id: str | None,
+    command_app_data: Path | None,
+) -> None:
     """Import local ENEX files into an Obsidian vault."""
-    state = MigrationRunner(app_data_dir=ctx.obj["app_data"]).import_enex(
+    state = MigrationRunner(app_data_dir=command_app_data or ctx.obj["app_data"]).import_enex(
         list(files),
         vault_path=vault,
         task_id=task_id,
@@ -168,4 +175,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

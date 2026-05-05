@@ -98,6 +98,10 @@ class ENEXParser:
         """
         # 尝试从export-date属性获取
         notebook_elem = root.find('.//notebook')
+        if notebook_elem is not None:
+            name_elem = notebook_elem.find('name')
+            if name_elem is not None and name_elem.text:
+                return self._clean_text(name_elem.text)
         if notebook_elem is not None and notebook_elem.text:
             return self._clean_text(notebook_elem.text)
 
@@ -128,10 +132,6 @@ class ENEXParser:
             if tag_elem.text:
                 tags.append(self._clean_text(tag_elem.text))
 
-        # 提取其他属性
-        source_url = self._get_element_text(note_elem, 'source-url')
-        author = self._get_element_text(note_elem, 'author')
-
         # 提取GUID（Evernote唯一标识符）
         guid = None
         guid_elem = note_elem.find('guid')
@@ -140,6 +140,8 @@ class ENEXParser:
 
         # 提取笔记属性
         attributes = self._extract_note_attributes(note_elem)
+        source_url = self._get_element_text(note_elem, 'source-url') or attributes.get('source-url')
+        author = self._get_element_text(note_elem, 'author') or attributes.get('author')
 
         # 提取资源（附件）
         attachments = self._extract_resources(note_elem)

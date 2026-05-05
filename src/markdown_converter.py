@@ -25,6 +25,15 @@ class MarkdownConverter:
         self.config = config
         self.h2t = self._setup_html2text()
 
+    def _config_get(self, key: str, default: Any = None) -> Any:
+        """Get nested dict config values using dotted keys."""
+        value: Any = self.config
+        for part in key.split('.'):
+            if not isinstance(value, dict) or part not in value:
+                return default
+            value = value[part]
+        return value
+
     def _setup_html2text(self) -> html2text.HTML2Text:
         """
         设置html2text转换器
@@ -35,9 +44,9 @@ class MarkdownConverter:
         h = html2text.HTML2Text()
 
         # 基础配置
-        h.ignore_links = not self.config.get('conversion.convert_links', True)
+        h.ignore_links = not self._config_get('conversion.convert_links', True)
         h.ignore_images = False
-        h.ignore_tables = not self.config.get('conversion.convert_tables', True)
+        h.ignore_tables = not self._config_get('conversion.convert_tables', True)
         h.body_width = 0  # 不限制行宽
         h.unicode_snob = True  # 使用Unicode字符
         h.escape_snob = True  # 转义特殊字符
@@ -87,40 +96,40 @@ class MarkdownConverter:
             YAML前言字符串
         """
         if not any([
-            self.config.get('metadata.include_created_date'),
-            self.config.get('metadata.include_modified_date'),
-            self.config.get('metadata.include_tags'),
-            self.config.get('metadata.include_notebook'),
-            self.config.get('metadata.include_source')
+            self._config_get('metadata.include_created_date'),
+            self._config_get('metadata.include_modified_date'),
+            self._config_get('metadata.include_tags'),
+            self._config_get('metadata.include_notebook'),
+            self._config_get('metadata.include_source')
         ]):
             return ""
 
         frontmatter_lines = []
-        date_format = self.config.get('metadata.date_format', '%Y-%m-%d %H:%M:%S')
+        date_format = self._config_get('metadata.date_format', '%Y-%m-%d %H:%M:%S')
 
         # 添加标题
         if note.title:
             frontmatter_lines.append(f'title: "{self._escape_yaml_string(note.title)}"')
 
         # 添加创建日期
-        if self.config.get('metadata.include_created_date') and note.created:
+        if self._config_get('metadata.include_created_date') and note.created:
             frontmatter_lines.append(f'created: "{note.created.strftime(date_format)}"')
 
         # 添加修改日期
-        if self.config.get('metadata.include_modified_date') and note.updated:
+        if self._config_get('metadata.include_modified_date') and note.updated:
             frontmatter_lines.append(f'updated: "{note.updated.strftime(date_format)}"')
 
         # 添加标签
-        if self.config.get('metadata.include_tags') and note.tags:
+        if self._config_get('metadata.include_tags') and note.tags:
             tags_str = ', '.join([f'"{tag}"' for tag in note.tags])
             frontmatter_lines.append(f'tags: [{tags_str}]')
 
         # 添加笔记本信息
-        if self.config.get('metadata.include_notebook') and note.notebook:
+        if self._config_get('metadata.include_notebook') and note.notebook:
             frontmatter_lines.append(f'notebook: "{self._escape_yaml_string(note.notebook)}"')
 
         # 添加来源信息
-        if self.config.get('metadata.include_source'):
+        if self._config_get('metadata.include_source'):
             frontmatter_lines.append(f'source: "{note.source}"')
 
         # 添加作者
@@ -203,7 +212,7 @@ class MarkdownConverter:
         content = self._fix_nested_tags(content)
 
         # 清理无效的HTML
-        if self.config.get('conversion.clean_html', True):
+        if self._config_get('conversion.clean_html', True):
             content = self._clean_html(content)
 
         return content
@@ -382,7 +391,7 @@ class MarkdownConverter:
             修复后的内容
         """
         # 转换为Obsidian风格的图片引用
-        image_folder = self.config.get('conversion.image_folder', 'attachments')
+        image_folder = self._config_get('conversion.image_folder', 'attachments')
 
         def fix_image_path(match):
             alt_text = match.group(1) or 'image'
@@ -484,12 +493,12 @@ class MarkdownConverter:
         filename = self._sanitize_filename(filename)
 
         # 限制文件名长度
-        max_length = self.config.get('conversion.max_filename_length', 100)
+        max_length = self._config_get('conversion.max_filename_length', 100)
         if len(filename) > max_length:
             filename = filename[:max_length].strip()
 
         # 添加扩展名
-        extensions = self.config.get('conversion.markdown_extensions', ['.md'])
+        extensions = self._config_get('conversion.markdown_extensions', ['.md'])
         extension = extensions[0] if extensions else '.md'
 
         return f"{filename}{extension}"
@@ -506,7 +515,7 @@ class MarkdownConverter:
         """
         # 定义无效字符
         invalid_chars = r'[<>:"/\\|?*\x00-\x1f]'
-        replacement = self.config.get('file_organization.invalid_char_replacement', '_')
+        replacement = self._config_get('file_organization.invalid_char_replacement', '_')
 
         # 替换无效字符
         filename = re.sub(invalid_chars, replacement, filename)

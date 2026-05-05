@@ -2,6 +2,38 @@
 
 **一键完成印象笔记到Obsidian的完整迁移，包括导出、转换和配置！**
 
+## Release 版定位
+
+当前实现正在向发布级工具演进：核心迁移引擎、Web 界面和 CLI 已共用同一套任务系统。首个发布版主打印象笔记中国版账号同步，同时支持本地 ENEX 导入作为稳定兜底路径。
+
+### 推荐 CLI 命令
+
+```bash
+# 检查本机环境
+python3 migrate.py doctor --vault /path/to/ObsidianVault
+
+# 导入本地 ENEX 文件
+python3 migrate.py import-enex notes.enex --vault /path/to/ObsidianVault
+
+# 印象笔记中国版账号同步并迁移
+python3 migrate.py migrate --username you@example.com --vault /path/to/ObsidianVault
+
+# 启动本地 Web 界面
+python3 migrate.py web
+```
+
+迁移任务状态和中间文件保存在用户数据目录（默认 `~/.evernote2obsidian`）。密码不会保存；`evernote-backup` 产生的本地数据库、token 和 ENEX 中间文件可通过任务缓存目录定位和删除。
+
+### 发布打包
+
+发布脚本位于 `packaging/`：
+
+- Windows: `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1`
+- macOS: `bash packaging/build_macos.sh`
+- 源码烟测: `python3 packaging/smoke_test.py`
+
+发布依赖固定为 `evernote-backup==1.13.1`，便于复现和排查。
+
 ## ✨ 核心特性
 
 ### 🔄 全自动流程
@@ -35,10 +67,10 @@ cd evernote-to-obsidian
 pip install -r requirements.txt
 
 # 3. 启动Web界面
-python3 web_app.py
+python3 migrate.py web
 
-# 或使用启动脚本（支持更多选项）
-python3 start_web.py --help
+# 兼容旧入口
+python3 web_app.py
 ```
 
 然后在浏览器中打开 http://localhost:5000，享受友好的图形界面！
@@ -49,8 +81,8 @@ python3 start_web.py --help
 # 1. 安装依赖（同上）
 pip install -r requirements.txt
 
-# 2. 一键迁移
-python3 migrate.py
+# 2. 查看命令帮助
+python3 migrate.py --help
 ```
 
 无论使用哪种方式，工具都会自动：

@@ -1,17 +1,19 @@
 # Web界面使用指南
 
+新版 Web 界面由发布级任务引擎驱动，和 CLI 共用同一套 ENEX 解析、附件写入、YAML 元数据和报告逻辑。
+
 ## 🌐 启动Web应用
 
 ```bash
 # 方法1：禁用代理后启动（推荐）
 unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
-python web_app.py
+python migrate.py web
 
 # 方法2：直接启动（已自动处理代理问题）
 python web_app.py
 ```
 
-访问地址：http://localhost:5000
+访问地址：启动命令会自动打开本地浏览器。服务只绑定 `127.0.0.1`。
 
 ## 📋 使用步骤
 
@@ -24,7 +26,7 @@ python web_app.py
 
 #### 🎯 自动导出模式（推荐）
 - **功能**：自动连接印象笔记服务器导出数据
-- **适用**：首次迁移或完整备份
+- **适用**：印象笔记中国版账号的首次迁移或完整备份
 - **按钮**：`输入账号开始迁移`（绿色"推荐"标签）
 
 #### 📁 文件上传模式
@@ -43,7 +45,8 @@ python web_app.py
 **重要说明**：
 - ✅ 账号密码仅用于连接印象笔记导出数据
 - ✅ 密码不会被保存或上传
-- ✅ 支持印象笔记中国版和国际版
+- ✅ 首个发布版账号同步主打印象笔记中国版
+- ✅ Evernote 国际版或其他来源建议先导出 ENEX 后使用文件导入
 - ❌ **不支持**已启用两步验证的账号（需要应用密码）
 
 ### 4. 开始迁移
@@ -76,7 +79,7 @@ python web_app.py
 ```bash
 # 1. 重启Web应用（禁用代理）
 unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
-python web_app.py
+python migrate.py web
 
 # 2. 运行网络诊断
 python debug_sync_failure.py
