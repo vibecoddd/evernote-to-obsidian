@@ -1,0 +1,71 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from evernote_to_obsidian.doctor import run_doctor
+from evernote_to_obsidian.runner import MigrationRunner
+from evernote_to_obsidian.state import TaskStateStore
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "sample_complex.enex"
+
+
+def test_import_enex_creates_resumable_task_and_progress_events(tmp_path):
+    events = []
+    runner = MigrationRunner(app_data_dir=tmp_path / "app")
+
+    state = runner.import_enex(
+        [FIXTURE],
+        vault_path=tmp_path / "vault",
+        task_id="run-001",
+        progress_callback=events.append,
+    )
+
+    loaded = TaskStateStore(tmp_path / "app").load("run-001")
+    phase_names = [event["phase"] for event in loaded.phase_history]
+
+    assert state.phase == "completed"
+    assert loaded.status == "completed"
+    assert phase_names == ["parsed", "written", "verified", "completed"]
+    assert loaded.stats.total_notes == 2
+    assert loaded.stats.converted_notes == 2
+    assert loaded.stats.total_attachments == 1
+    assert (loaded.task_dir / "reports" / "report.json").exists()
+    assert any(event.phase == "written" for event in events)
+
+
+def test_resume_continues_task_with_existing_enex_inventory(tmp_path):
+    store = TaskStateStore(tmp_path / "app")
+    state = store.create(
+        source_mode="import_enex",
+        vault_path=tmp_path / "vault",
+        task_id="resume-001",
+    )
+    state.enex_files = [str(FIXTURE)]
+    store.transition(state, "exported", "ENEX files ready")
+
+    resumed = MigrationRunner(app_data_dir=tmp_path / "app").resume("resume-001")
+
+    assert resumed.phase == "completed"
+    assert resumed.stats.converted_notes == 2
+    assert (tmp_path / "vault" / "Work Notes").exists()
+
+
+def test_doctor_reports_local_environment_without_real_account(tmp_path):
+    report = run_doctor(
+        vault_path=tmp_path / "vault",
+        app_data_dir=tmp_path / "app",
+        evernote_command="definitely-missing-evernote-backup",
+    )
+    checks = {check.name: check for check in report.checks}
+
+    assert "python_version" in checks
+    assert "app_data_write" in checks
+    assert "vault_write" in checks
+    assert "disk_space" in checks
+    assert "path_length" in checks
+    assert "web_port" in checks
+    assert "evernote_backup_command" in checks
+    assert checks["evernote_backup_command"].status == "warning"
+    assert report.to_dict()["ok"] is True
