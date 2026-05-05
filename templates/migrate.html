@@ -85,10 +85,9 @@
                             </label>
                             <select class="form-select" id="evernoteBackend">
                                 <option value="china" selected>印象笔记中国版 (推荐)</option>
-                                <option value="international">Evernote国际版</option>
                             </select>
                             <div class="form-text">
-                                中国用户通常使用印象笔记中国版
+                                首个发布版账号同步主打印象笔记中国版；其他来源请使用ENEX导入。
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -492,20 +491,12 @@ function uploadFiles() {
         if (xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
             if (response.success) {
-                statusText.textContent = '文件上传成功，开始迁移...';
-
-                // 准备配置
-                const config = migrationConfig || getDefaultConfig();
-                config.input.enex_files = response.files;
-                config.temp_directory = response.temp_dir;
-
-                // 获取输出目录
-                const outputDirectory = document.getElementById('outputDirectory').value.trim();
-                if (outputDirectory) {
-                    config.output.obsidian_vault = outputDirectory;
-                }
-
-                startMigration(config);
+                currentTaskId = response.task_id;
+                statusText.textContent = '文件上传和迁移完成';
+                showMigrationResult({
+                    success: true,
+                    result: response.result
+                });
             } else {
                 alert('文件上传失败: ' + response.error);
                 progressDiv.style.display = 'none';
@@ -516,7 +507,9 @@ function uploadFiles() {
         }
     };
 
-    xhr.open('POST', '/api/upload_enex');
+    const outputDirectory = document.getElementById('outputDirectory').value.trim();
+    formData.append('vault_path', outputDirectory || '/tmp/obsidian_vault');
+    xhr.open('POST', '/api/import_enex');
     xhr.send(formData);
 }
 

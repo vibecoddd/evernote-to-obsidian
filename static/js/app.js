@@ -317,6 +317,7 @@ async function apiRequest(url, options = {}) {
     const defaultOptions = {
         headers: {
             'Content-Type': 'application/json',
+            'X-Evernote2Obsidian-Local': '1',
         },
     };
 
