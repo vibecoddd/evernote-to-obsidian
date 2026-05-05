@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<en-export export-date="20260506T000000Z" application="Evernote">
+  <notebook>Work Notes</notebook>
+  <note>
+    <title>Meeting/Plan: Q1?</title>
+    <guid>11111111-1111-1111-1111-111111111111</guid>
+    <created>20240102T030405Z</created>
+    <updated>20240103T040506Z</updated>
+    <tag>工作</tag>
+    <tag>meeting</tag>
+    <content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
+<en-note>
+  <div>Agenda</div>
+  <div><en-todo checked="true"/> Confirm scope</div>
+  <div><a href="https://example.com/spec">Spec Link</a></div>
+  <table><tr><td>A</td><td>B</td></tr></table>
+  <en-media type="image/png" hash="f9831439379ccdb20cc6ba12b54eb868"/>
+</en-note>]]></content>
+    <resource>
+      <data encoding="base64">aW1hZ2UtYnl0ZXM=</data>
+      <mime>image/png</mime>
+      <resource-attributes>
+        <file-name>diagram.png</file-name>
+        <width>640</width>
+        <height>480</height>
+      </resource-attributes>
+    </resource>
+    <note-attributes>
+      <source-url>https://example.com/source</source-url>
+      <author>Alice</author>
+      <latitude>31.2304</latitude>
+      <longitude>121.4737</longitude>
+      <altitude>8</altitude>
+    </note-attributes>
+  </note>
+  <note>
+    <title>Meeting/Plan: Q1?</title>
+    <guid>22222222-2222-2222-2222-222222222222</guid>
+    <created>20240104T030405Z</created>
+    <updated>20240105T040506Z</updated>
+    <tag>meeting</tag>
+    <content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">
+<en-note><div>Second note with same title.</div></en-note>]]></content>
+  </note>
+</en-export>
