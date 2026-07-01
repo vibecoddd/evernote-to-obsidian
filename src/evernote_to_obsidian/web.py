@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 import socket
 import threading
 import uuid
@@ -25,9 +26,14 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
         static_folder=str(project_root / "static"),
     )
     app.config["SECRET_KEY"] = uuid.uuid4().hex
+    app.config["LOCAL_SESSION_TOKEN"] = secrets.token_urlsafe(32)
     app.config["APP_DATA_DIR"] = Path(app_data_dir).expanduser().resolve() if app_data_dir else None
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+    socketio = SocketIO(app, async_mode="threading")
     active_migrations: dict[str, dict[str, Any]] = {}
+
+    @app.context_processor
+    def inject_local_session_token():
+        return {"local_session_token": app.config["LOCAL_SESSION_TOKEN"]}
 
     @app.route("/")
     def index():
@@ -56,6 +62,9 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
 
     @app.route("/api/import_enex", methods=["POST"])
     def api_import_enex():
+        guard = _require_local_token(app)
+        if guard:
+            return guard
         vault_path = request.form.get("vault_path") or request.form.get("outputDirectory")
         if not vault_path:
             return jsonify({"success": False, "error": "vault_path is required"}), 400
@@ -64,7 +73,7 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
         if not files:
             return jsonify({"success": False, "error": "No ENEX files uploaded"}), 400
 
-        task_id = request.form.get("task_id") or uuid.uuid4().hex
+        task_id = _task_id(request.form.get("task_id"))
         upload_dir = _upload_dir(app.config["APP_DATA_DIR"], task_id)
         saved_files: list[Path] = []
         for file_storage in files:
@@ -75,28 +84,21 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
             file_storage.save(path)
             saved_files.append(path)
 
-        try:
-            state = _runner(app).import_enex(
-                saved_files,
-                vault_path=vault_path,
-                task_id=task_id,
-                progress_callback=lambda event: _emit_progress(socketio, active_migrations, event),
-            )
-            payload = _state_payload(state)
-            active_migrations[state.task_id] = payload
-            socketio.emit(
-                "migration_completed",
-                {"task_id": state.task_id, "success": True, "result": payload},
-                room=state.task_id,
-            )
-            return jsonify({"success": True, "task_id": state.task_id, "result": payload})
-        except Exception as exc:
-            active_migrations[task_id] = {"status": "failed", "message": str(exc)}
-            return jsonify({"success": False, "error": str(exc), "task_id": task_id}), 500
+        active_migrations[task_id] = {"task_id": task_id, "status": "running", "message": "Upload accepted"}
+        thread = threading.Thread(
+            target=_run_uploaded_import,
+            args=(app, socketio, active_migrations, task_id, saved_files, vault_path),
+            daemon=True,
+        )
+        thread.start()
+        return jsonify({"success": True, "task_id": task_id, "message": "Migration started"}), 202
 
     @app.route("/api/upload_enex", methods=["POST"])
     def api_upload_enex():
-        task_id = uuid.uuid4().hex
+        guard = _require_local_token(app)
+        if guard:
+            return guard
+        task_id = _task_id(request.form.get("task_id"))
         upload_dir = _upload_dir(app.config["APP_DATA_DIR"], task_id)
         saved_files: list[str] = []
         for file_storage in request.files.getlist("enex_files"):
@@ -111,8 +113,11 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
 
     @app.route("/api/start_migration", methods=["POST"])
     def api_start_migration():
+        guard = _require_local_token(app)
+        if guard:
+            return guard
         config = request.get_json(silent=True) or {}
-        task_id = uuid.uuid4().hex
+        task_id = _task_id(config.get("task_id"))
         active_migrations[task_id] = {"status": "running", "message": "Migration started"}
 
         thread = threading.Thread(
@@ -125,6 +130,9 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
 
     @app.route("/api/migration_status/<task_id>")
     def api_migration_status(task_id: str):
+        guard = _require_local_token(app)
+        if guard:
+            return guard
         if task_id in active_migrations:
             return jsonify(active_migrations[task_id])
         try:
@@ -135,18 +143,68 @@ def create_app(app_data_dir: str | Path | None = None) -> tuple[Flask, SocketIO]
 
     @app.route("/api/report/<task_id>")
     def api_report(task_id: str):
+        guard = _require_local_token(app)
+        if guard:
+            return guard
         try:
             return jsonify(_runner(app).report(task_id))
         except Exception as exc:
             return jsonify({"error": str(exc)}), 404
 
+    @app.route("/api/tasks")
+    def api_tasks():
+        guard = _require_local_token(app)
+        if guard:
+            return guard
+        states = TaskStateStore(_app_data(app)).list()
+        return jsonify({"tasks": [_state_payload(state) for state in states]})
+
+    @app.route("/api/tasks/<task_id>", methods=["DELETE"])
+    def api_delete_task(task_id: str):
+        guard = _require_local_token(app)
+        if guard:
+            return guard
+        deleted = TaskStateStore(_app_data(app)).delete(task_id)
+        if not deleted:
+            return jsonify({"success": False, "error": "Task not found"}), 404
+        active_migrations.pop(task_id, None)
+        return jsonify({"success": True, "task_id": task_id})
+
     @socketio.on("join_task")
     def join_task(data):
         task_id = (data or {}).get("task_id")
-        if task_id:
+        token = (data or {}).get("token")
+        if task_id and _valid_token(app, token):
             join_room(task_id)
 
     return app, socketio
+
+
+def _run_uploaded_import(
+    app: Flask,
+    socketio: SocketIO,
+    active_migrations: dict[str, dict[str, Any]],
+    task_id: str,
+    saved_files: list[Path],
+    vault_path: str,
+) -> None:
+    try:
+        state = _runner(app).import_enex(
+            saved_files,
+            vault_path=vault_path,
+            task_id=task_id,
+            progress_callback=lambda event: _emit_progress(socketio, active_migrations, event),
+        )
+        payload = _state_payload(state)
+        active_migrations[state.task_id] = payload
+        socketio.emit(
+            "migration_completed",
+            {"task_id": state.task_id, "success": True, "result": payload},
+            room=state.task_id,
+        )
+    except Exception as exc:
+        active_migrations[task_id] = {"task_id": task_id, "status": "failed", "message": str(exc)}
+        socketio.emit("migration_error", {"task_id": task_id, "error": str(exc)}, room=task_id)
 
 
 def _run_config_migration(
@@ -159,6 +217,8 @@ def _run_config_migration(
     try:
         output = config.get("output", {})
         vault_path = output.get("obsidian_vault")
+        if not vault_path:
+            raise ValueError("output.obsidian_vault is required")
         enex_files = config.get("input", {}).get("enex_files", [])
         if enex_files:
             state = _runner(app).import_enex(
@@ -219,6 +279,9 @@ def _state_payload(state) -> dict[str, Any]:
         "end_time": state.updated_at,
         "vault_path": str(state.vault_path),
         "stats": state.stats.to_dict(),
+        "task_dir": str(state.task_dir),
+        "report_dir": str(state.task_dir / "reports"),
+        "verification": state.verification,
         "errors": state.errors,
         "warnings": state.warnings,
     }
@@ -242,6 +305,29 @@ def _upload_dir(app_data_dir: Path | None, task_id: str) -> Path:
     return path
 
 
+def _require_local_token(app: Flask):
+    token = (
+        request.headers.get("X-Evernote2Obsidian-Token")
+        or request.args.get("token")
+        or request.form.get("_token")
+    )
+    if _valid_token(app, token):
+        return None
+    return jsonify({"success": False, "error": "Forbidden"}), 403
+
+
+def _valid_token(app: Flask, token: str | None) -> bool:
+    expected = str(app.config.get("LOCAL_SESSION_TOKEN") or "")
+    return bool(token and expected and secrets.compare_digest(str(token), expected))
+
+
+def _task_id(value: str | None) -> str:
+    candidate = (value or uuid.uuid4().hex).strip()
+    if not candidate or any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for char in candidate):
+        return uuid.uuid4().hex
+    return candidate[:120]
+
+
 def _available_port(host: str) -> int:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -261,4 +347,3 @@ def main(app_data: str | Path | None = None, host: str = "127.0.0.1", port: int 
         pass
     print(f"Starting local Web UI at {url}")
     socketio.run(app, host=host, port=selected_port, debug=False, allow_unsafe_werkzeug=True)
-

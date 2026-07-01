@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -33,10 +34,14 @@ class TaskState:
     phase: str = "created"
     status: str = "running"
     enex_files: list[str] = field(default_factory=list)
+    processed_enex_files: list[str] = field(default_factory=list)
+    processed_note_ids: list[str] = field(default_factory=list)
+    note_results: list[dict[str, Any]] = field(default_factory=list)
     written_files: list[str] = field(default_factory=list)
     errors: list[dict[str, Any]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     stats: TaskStats = field(default_factory=TaskStats)
+    verification: dict[str, Any] = field(default_factory=dict)
     phase_history: list[dict[str, str]] = field(default_factory=list)
     created_at: str = field(default_factory=utc_now_iso)
     updated_at: str = field(default_factory=utc_now_iso)
@@ -67,10 +72,14 @@ class TaskState:
             phase=data.get("phase", "created"),
             status=data.get("status", "running"),
             enex_files=list(data.get("enex_files", [])),
+            processed_enex_files=list(data.get("processed_enex_files", [])),
+            processed_note_ids=list(data.get("processed_note_ids", [])),
+            note_results=list(data.get("note_results", [])),
             written_files=list(data.get("written_files", [])),
             errors=list(data.get("errors", [])),
             warnings=list(data.get("warnings", [])),
             stats=TaskStats.from_dict(data.get("stats")),
+            verification=dict(data.get("verification", {})),
             phase_history=list(data.get("phase_history", [])),
             created_at=data.get("created_at", utc_now_iso()),
             updated_at=data.get("updated_at", utc_now_iso()),
@@ -106,6 +115,22 @@ class TaskStateStore:
         with path.open("r", encoding="utf-8") as handle:
             return TaskState.from_dict(json.load(handle))
 
+    def list(self) -> list[TaskState]:
+        states: list[TaskState] = []
+        for path in self.tasks_dir.glob("*/state.json"):
+            try:
+                states.append(TaskState.from_dict(json.loads(path.read_text(encoding="utf-8"))))
+            except Exception:
+                continue
+        return sorted(states, key=lambda state: state.updated_at, reverse=True)
+
+    def delete(self, task_id: str) -> bool:
+        task_dir = self.tasks_dir / task_id
+        if not task_dir.exists():
+            return False
+        shutil.rmtree(task_dir)
+        return True
+
     def save(self, state: TaskState) -> None:
         state.updated_at = utc_now_iso()
         state.task_dir.mkdir(parents=True, exist_ok=True)
@@ -130,4 +155,3 @@ class TaskStateStore:
         )
         self.save(state)
         return state
-

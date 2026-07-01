@@ -16,7 +16,11 @@ def task_report_data(state: TaskState) -> dict[str, object]:
         "task_dir": str(state.task_dir),
         "stats": state.stats.to_dict(),
         "enex_files": state.enex_files,
+        "processed_enex_files": state.processed_enex_files,
+        "processed_note_ids": state.processed_note_ids,
+        "note_results": state.note_results,
         "written_files": state.written_files,
+        "verification": state.verification,
         "errors": state.errors,
         "warnings": state.warnings,
         "phase_history": state.phase_history,
@@ -72,4 +76,3 @@ def write_task_reports(state: TaskState, output_dir: str | Path | None = None) -
     )
     markdown_path.write_text(markdown_report(state), encoding="utf-8")
     return json_path, markdown_path
-

@@ -10,6 +10,7 @@ import click
 from .doctor import run_doctor
 from .evernote_backup import EvernoteBackupSource
 from .runner import MigrationRunner
+from .state import TaskStateStore
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -127,6 +128,21 @@ def report(ctx: click.Context, task_id: str, as_json: bool) -> None:
     else:
         click.echo(f"Task {payload['task_id']}: {payload['status']} ({payload['phase']})")
         click.echo(f"Converted notes: {payload['stats']['converted_notes']}")
+
+
+@cli.command()
+@click.argument("task_id")
+@click.option("--yes", is_flag=True, help="Confirm deletion of the local task cache.")
+@click.pass_context
+def cleanup(ctx: click.Context, task_id: str, yes: bool) -> None:
+    """Delete a local task cache directory."""
+    if not yes:
+        raise click.ClickException("Pass --yes to delete the local task cache")
+    root = ctx.obj["app_data"] or (Path.home() / ".evernote2obsidian")
+    deleted = TaskStateStore(root).delete(task_id)
+    if not deleted:
+        raise click.ClickException(f"Task not found: {task_id}")
+    click.echo(f"Task {task_id} deleted")
 
 
 @cli.command()

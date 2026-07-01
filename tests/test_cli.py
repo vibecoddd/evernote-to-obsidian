@@ -63,6 +63,12 @@ def test_import_enex_and_report_commands(tmp_path):
     assert payload["task_id"] == "cli-001"
     assert payload["stats"]["converted_notes"] == 2
 
+    cleanup = runner.invoke(cli, ["--app-data", str(app_data), "cleanup", "cli-001", "--yes"])
+
+    assert cleanup.exit_code == 0, cleanup.output
+    assert "deleted" in cleanup.output
+    assert not (app_data / "tasks" / "cli-001").exists()
+
 
 def test_sync_dry_run_validates_arguments_without_network(tmp_path):
     result = CliRunner().invoke(
@@ -86,5 +92,5 @@ def test_help_includes_release_commands():
     result = CliRunner().invoke(cli, ["--help"])
 
     assert result.exit_code == 0
-    for command in ["migrate", "import-enex", "sync", "resume", "report", "doctor", "web"]:
+    for command in ["migrate", "import-enex", "sync", "resume", "report", "doctor", "cleanup", "web"]:
         assert command in result.output

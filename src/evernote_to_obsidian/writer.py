@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,7 @@ from .models import Note, TaskStats, utc_now_iso
 class WriteResult:
     stats: TaskStats = field(default_factory=TaskStats)
     written_files: list[str] = field(default_factory=list)
+    note_results: list[dict[str, Any]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[dict[str, Any]] = field(default_factory=list)
 
@@ -32,16 +35,28 @@ class ObsidianWriter:
         self.converter = MarkdownConverter()
         self._used_note_paths: set[Path] = set()
 
-    def write_notes(self, notes: list[Note], notebook_name: str, task_id: str) -> WriteResult:
+    def write_notes(
+        self,
+        notes: Iterable[Note],
+        notebook_name: str,
+        task_id: str,
+        source_enex: str | Path | None = None,
+        skip_note_ids: Iterable[str] | None = None,
+        on_note_written: Callable[[dict[str, Any]], None] | None = None,
+    ) -> WriteResult:
         self.vault_path.mkdir(parents=True, exist_ok=True)
         result = WriteResult()
-        result.stats.total_notes = len(notes)
         migrated_at = utc_now_iso()
         notebook_dir = self.vault_path / self._sanitize_component(notebook_name)
         notebook_dir.mkdir(parents=True, exist_ok=True)
+        skip_ids = set(skip_note_ids or [])
 
         note_entries: list[tuple[Note, str]] = []
         for note in notes:
+            note_id = note.note_id()
+            if note_id in skip_ids:
+                continue
+            result.stats.total_notes += 1
             try:
                 attachment_links, attachment_metadata = self._write_attachments(note)
                 markdown = self.converter.convert(
@@ -52,13 +67,25 @@ class ObsidianWriter:
                     migrated_at=migrated_at,
                 )
                 note_path = self._note_path(note, notebook_dir)
-                note_path.write_text(markdown, encoding="utf-8")
+                self._atomic_write_text(note_path, markdown)
                 self._set_timestamps(note_path, note)
                 rel_path = note_path.relative_to(self.vault_path).as_posix()
+                note_result = {
+                    "note_id": note_id,
+                    "title": note.title,
+                    "notebook": notebook_name,
+                    "tags": note.tags,
+                    "path": rel_path,
+                    "attachments": attachment_metadata,
+                    "source_enex": str(source_enex) if source_enex else None,
+                }
                 result.written_files.append(rel_path)
+                result.note_results.append(note_result)
                 note_entries.append((note, rel_path))
                 result.stats.converted_notes += 1
                 result.stats.total_attachments += len(attachment_metadata)
+                if on_note_written:
+                    on_note_written(note_result)
             except Exception as exc:
                 result.stats.skipped_notes += 1
                 result.errors.append({"message": str(exc), "note": note.title})
@@ -66,6 +93,40 @@ class ObsidianWriter:
         self._write_index(notebook_name, notebook_dir, note_entries)
         self._write_vault_report(task_id, result)
         return result
+
+    def write_indexes_from_results(self, note_results: Iterable[dict[str, Any]]) -> None:
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for note_result in note_results:
+            rel_path = str(note_result.get("path") or "")
+            notebook = str(note_result.get("notebook") or self._notebook_from_rel_path(rel_path))
+            grouped.setdefault(notebook, []).append(note_result)
+
+        for notebook_name, entries in grouped.items():
+            notebook_dir = self.vault_path / self._sanitize_component(notebook_name)
+            notebook_dir.mkdir(parents=True, exist_ok=True)
+            index_path = notebook_dir / f"{self._sanitize_component(notebook_name)}_Index.md"
+            lines = [
+                f"# {notebook_name} Index",
+                "",
+                f"Generated: {utc_now_iso()}",
+                f"Total notes: {len(entries)}",
+                "",
+            ]
+            for entry in sorted(entries, key=lambda item: str(item.get("title") or "")):
+                rel_path = str(entry.get("path") or "")
+                title = str(entry.get("title") or Path(rel_path).stem)
+                stem = Path(rel_path).stem
+                tags = entry.get("tags") or []
+                tag_text = " ".join(f"#{tag}" for tag in tags)
+                suffix = f" {tag_text}" if tag_text else ""
+                lines.append(f"- [[{stem}]] - {title}{suffix}")
+            self._atomic_write_text(index_path, "\n".join(lines) + "\n")
+
+    def _notebook_from_rel_path(self, rel_path: str) -> str:
+        parts = Path(rel_path).parts
+        if len(parts) > 1 and parts[0]:
+            return parts[0]
+        return "Default Notebook"
 
     def _write_attachments(self, note: Note) -> tuple[dict[str, str], list[dict[str, Any]]]:
         if not note.resources:
@@ -81,7 +142,7 @@ class ObsidianWriter:
             filename = self._unique_filename(self._sanitize_component(resource.filename), used)
             used.add(filename)
             path = note_attachment_dir / filename
-            path.write_bytes(resource.data)
+            self._atomic_write_bytes(path, resource.data)
             relative = path.relative_to(self.vault_path).as_posix()
             links[resource_hash] = self._obsidian_link(relative, filename, resource.mime_type)
             metadata.append(
@@ -127,7 +188,7 @@ class ObsidianWriter:
             tag_text = " ".join(f"#{tag}" for tag in note.tags)
             suffix = f" {tag_text}" if tag_text else ""
             lines.append(f"- [[{stem}]] - {note.title}{suffix}")
-        index_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        self._atomic_write_text(index_path, "\n".join(lines) + "\n")
 
     def _write_vault_report(self, task_id: str, result: WriteResult) -> None:
         report_dir = self.vault_path / "migration-reports"
@@ -139,9 +200,9 @@ class ObsidianWriter:
             "warnings": result.warnings,
             "errors": result.errors,
         }
-        (report_dir / f"{task_id}.json").write_text(
+        self._atomic_write_text(
+            report_dir / f"{task_id}.json",
             json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
         )
         lines = [
             f"# Migration Report: {task_id}",
@@ -155,7 +216,37 @@ class ObsidianWriter:
             "",
         ]
         lines.extend(f"- `{path}`" for path in result.written_files)
-        (report_dir / f"{task_id}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        self._atomic_write_text(report_dir / f"{task_id}.md", "\n".join(lines) + "\n")
+
+    def _atomic_write_text(self, path: Path, content: str) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(content)
+            tmp_path.replace(path)
+        except Exception:
+            try:
+                tmp_path.unlink()
+            except FileNotFoundError:
+                pass
+            raise
+
+    def _atomic_write_bytes(self, path: Path, content: bytes) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(content)
+            tmp_path.replace(path)
+        except Exception:
+            try:
+                tmp_path.unlink()
+            except FileNotFoundError:
+                pass
+            raise
 
     def _obsidian_link(self, relative_path: str, filename: str, mime_type: str) -> str:
         if mime_type.startswith("image/"):
@@ -217,4 +308,3 @@ class ObsidianWriter:
                 os.utime(path, (timestamp, timestamp))
             except OSError:
                 pass
-

@@ -115,6 +115,17 @@
                         </ul>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="autoOutputDirectory" class="form-label">
+                            <i class="fas fa-folder me-1"></i>输出目录
+                        </label>
+                        <input type="text" class="form-control" id="autoOutputDirectory"
+                               placeholder="/path/to/obsidian/vault" required>
+                        <div class="form-text">
+                            请输入并确认要写入的 Obsidian vault 目录。
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <button type="button" class="btn btn-secondary" onclick="goBack()">
                             <i class="fas fa-arrow-left me-1"></i>返回
@@ -153,7 +164,7 @@
                     <div class="input-group">
                         <input type="text" class="form-control" id="outputDirectory"
                                placeholder="/path/to/obsidian/vault"
-                               value="/tmp/obsidian_vault">
+                               value="">
                         <button class="btn btn-outline-secondary" type="button" onclick="browseDirectory()">
                             <i class="fas fa-folder-open me-1"></i>浏览
                         </button>
@@ -307,6 +318,30 @@ let socket = null;
 let currentTaskId = null;
 let migrationConfig = null;
 
+function localSessionToken() {
+    return document.querySelector('meta[name="local-session-token"]').content;
+}
+
+function authHeaders(extra = {}) {
+    return {
+        ...extra,
+        'X-Evernote2Obsidian-Token': localSessionToken()
+    };
+}
+
+function newTaskId() {
+    if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function joinTaskRoom(taskId) {
+    if (socket && socket.connected) {
+        socket.emit('join_task', { task_id: taskId, token: localSessionToken() });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化Socket.IO连接
     socket = io();
@@ -414,17 +449,18 @@ function formatFileSize(bytes) {
 
 // 开始自动迁移
 function startAutoMigration() {
-    console.log('startAutoMigration called');
-
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
     const backend = document.getElementById('evernoteBackend').value;
     const rememberCredentials = document.getElementById('rememberCredentials').checked;
-
-    console.log('Username:', username, 'Password length:', password.length, 'Backend:', backend);
+    const outputDirectory = document.getElementById('autoOutputDirectory').value.trim();
 
     if (!username || !password) {
         alert('请输入用户名和密码');
+        return;
+    }
+    if (!outputDirectory) {
+        alert('请输入输出目录');
         return;
     }
 
@@ -439,7 +475,6 @@ function startAutoMigration() {
     let config;
     try {
         config = migrationConfig || getDefaultConfig();
-        console.log('Config loaded:', config);
     } catch (e) {
         console.error('Error loading config:', e);
         config = getDefaultConfig();
@@ -450,17 +485,23 @@ function startAutoMigration() {
         username: username,
         password: password
     };
+    config.output = config.output || {};
+    config.output.obsidian_vault = outputDirectory;
 
-    console.log('Starting migration with config:', config);
     startMigration(config);
 }
 
 // 上传文件
 function uploadFiles() {
     const files = document.getElementById('enexFiles').files;
+    const outputDirectory = document.getElementById('outputDirectory').value.trim();
 
     if (files.length === 0) {
         alert('请选择ENEX文件');
+        return;
+    }
+    if (!outputDirectory) {
+        alert('请输入输出目录');
         return;
     }
 
@@ -468,6 +509,10 @@ function uploadFiles() {
     for (let i = 0; i < files.length; i++) {
         formData.append('enex_files', files[i]);
     }
+    currentTaskId = newTaskId();
+    formData.append('task_id', currentTaskId);
+    formData.append('vault_path', outputDirectory);
+    formData.append('_token', localSessionToken());
 
     // 显示上传进度
     const progressDiv = document.getElementById('uploadProgress');
@@ -476,6 +521,10 @@ function uploadFiles() {
 
     progressDiv.style.display = 'block';
     statusText.textContent = '正在上传文件...';
+    document.getElementById('modeSelection').style.display = 'none';
+    document.getElementById('uploadMode').style.display = 'none';
+    document.getElementById('migrationProgress').style.display = 'block';
+    joinTaskRoom(currentTaskId);
 
     const xhr = new XMLHttpRequest();
 
@@ -488,15 +537,13 @@ function uploadFiles() {
     });
 
     xhr.onload = function() {
-        if (xhr.status === 200) {
+        if (xhr.status === 202 || xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
             if (response.success) {
                 currentTaskId = response.task_id;
-                statusText.textContent = '文件上传和迁移完成';
-                showMigrationResult({
-                    success: true,
-                    result: response.result
-                });
+                joinTaskRoom(currentTaskId);
+                statusText.textContent = '文件上传完成，后台迁移已开始';
+                addLogMessage('文件上传完成，后台迁移已开始', 'info');
             } else {
                 alert('文件上传失败: ' + response.error);
                 progressDiv.style.display = 'none';
@@ -507,9 +554,8 @@ function uploadFiles() {
         }
     };
 
-    const outputDirectory = document.getElementById('outputDirectory').value.trim();
-    formData.append('vault_path', outputDirectory || '/tmp/obsidian_vault');
     xhr.open('POST', '/api/import_enex');
+    xhr.setRequestHeader('X-Evernote2Obsidian-Token', localSessionToken());
     xhr.send(formData);
 }
 
@@ -517,7 +563,6 @@ function uploadFiles() {
 function browseDirectory() {
     // 显示一个包含常用路径的模态框
     const commonPaths = [
-        '/tmp/obsidian_vault',
         '/home/user/Documents/ObsidianVault',
         '/root/Documents/Obsidian',
         '/Users/user/Documents/Obsidian',
@@ -596,7 +641,9 @@ function selectDirectory() {
 
 // 开始迁移
 function startMigration(config) {
-    console.log('startMigration called with config:', config);
+    currentTaskId = newTaskId();
+    config.task_id = currentTaskId;
+    joinTaskRoom(currentTaskId);
 
     // 隐藏模式选择和表单
     document.getElementById('modeSelection').style.display = 'none';
@@ -606,31 +653,20 @@ function startMigration(config) {
     // 显示迁移进度
     document.getElementById('migrationProgress').style.display = 'block';
 
-    console.log('Sending migration request to /api/start_migration');
-
     fetch('/api/start_migration', {
         method: 'POST',
-        headers: {
+        headers: authHeaders({
             'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify(config)
     })
     .then(response => {
-        console.log('Response status:', response.status);
         return response.json();
     })
     .then(data => {
-        console.log('Response data:', data);
         if (data.success) {
             currentTaskId = data.task_id;
-            console.log('Task ID:', currentTaskId);
-            // 检查socket连接
-            if (socket && socket.connected) {
-                console.log('Socket connected, joining task room');
-                socket.emit('join_task', { task_id: currentTaskId });
-            } else {
-                console.error('Socket not connected');
-            }
+            joinTaskRoom(currentTaskId);
             addLogMessage('迁移任务已开始...', 'info');
         } else {
             console.error('Migration start failed:', data.error);
@@ -650,7 +686,7 @@ function updateMigrationProgress(data) {
     // 更新整体进度
     const overallProgressBar = document.getElementById('overallProgressBar');
     const overallProgressBadge = document.getElementById('overallProgress');
-    const overallProgress = ((step - 1) * 25) + (progress / 4);
+    const overallProgress = Math.max(0, Math.min(100, progress));
 
     overallProgressBar.style.width = overallProgress + '%';
     overallProgressBadge.textContent = Math.round(overallProgress) + '%';
@@ -824,7 +860,7 @@ function getDefaultConfig() {
             encoding: 'utf-8'
         },
         output: {
-            obsidian_vault: '/home/user/Documents/ObsidianVault',
+            obsidian_vault: '',
             create_vault_if_not_exists: true,
             backup_existing: true,
             overwrite_existing: false

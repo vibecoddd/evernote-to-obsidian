@@ -84,6 +84,9 @@ logs/
 /temp/
 /output/
 /downloads/
+/untitled/
+untitled_Index.md
+欢迎使用Obsidian.md
 *.enex
 .credentials
 migration_*.json

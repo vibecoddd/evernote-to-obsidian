@@ -4,6 +4,7 @@ Use this checklist before publishing a Windows or macOS build.
 
 ## Required Verification
 
+- Run `python -m pip install -r requirements-dev.txt`.
 - Run `pytest -q`.
 - Run `python migrate.py doctor --json`.
 - Run `python packaging/smoke_test.py`.
@@ -33,4 +34,3 @@ Review generated logs and reports before publishing. They must not contain passw
 - Platforms tested.
 - Known limitation: first release supports Yinxiang account sync as the primary account path; Evernote International users should use ENEX import.
 - Cache location and cleanup guidance.
-

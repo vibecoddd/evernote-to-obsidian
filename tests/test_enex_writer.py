@@ -32,6 +32,21 @@ def test_enex_parser_extracts_notes_metadata_and_resource_hash():
     assert notes[0].resources[0].hash == "f9831439379ccdb20cc6ba12b54eb868"
 
 
+def test_enex_parser_parse_file_uses_streaming_iterparse(monkeypatch):
+    def fail_parse(*_args, **_kwargs):
+        raise AssertionError("parse_file must use iterparse for large ENEX files")
+
+    monkeypatch.setattr("evernote_to_obsidian.enex.ET.parse", fail_parse)
+
+    notes, notebook = ENEXParser().parse_file(FIXTURE)
+
+    assert notebook == "Work Notes"
+    assert [note.guid for note in notes] == [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222",
+    ]
+
+
 def test_obsidian_writer_preserves_structure_attachments_and_metadata(tmp_path):
     notes, notebook = ENEXParser().parse_file(FIXTURE)
     vault = tmp_path / "vault"

@@ -1,101 +1,46 @@
-# Web界面使用指南
+# Web 界面使用指南
 
-新版 Web 界面由发布级任务引擎驱动，和 CLI 共用同一套 ENEX 解析、附件写入、YAML 元数据和报告逻辑。
+Web 界面和 CLI 共用 `src/evernote_to_obsidian/` 的任务引擎，支持本地 ENEX 上传和印象笔记中国版账号同步。
 
-## 🌐 启动Web应用
-
-```bash
-# 方法1：禁用代理后启动（推荐）
-unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
-python migrate.py web
-
-# 方法2：直接启动（已自动处理代理问题）
-python web_app.py
-```
-
-访问地址：启动命令会自动打开本地浏览器。服务只绑定 `127.0.0.1`。
-
-## 📋 使用步骤
-
-### 1. 进入迁移页面
-- 点击导航栏的"迁移"按钮
-- 或直接访问：http://localhost:5000/migrate
-
-### 2. 选择迁移模式
-界面显示两个选项卡：
-
-#### 🎯 自动导出模式（推荐）
-- **功能**：自动连接印象笔记服务器导出数据
-- **适用**：印象笔记中国版账号的首次迁移或完整备份
-- **按钮**：`输入账号开始迁移`（绿色"推荐"标签）
-
-#### 📁 文件上传模式
-- **功能**：上传已有的ENEX文件进行转换
-- **适用**：已有ENEX文件的用户
-
-### 3. 输入账号密码（自动模式）
-选择自动模式后，会显示登录表单：
-
-```
-印象笔记账号（邮箱）: [your-email@example.com]
-印象笔记密码:         [your-password]
-□ 记住用户名（密码不会保存）
-```
-
-**重要说明**：
-- ✅ 账号密码仅用于连接印象笔记导出数据
-- ✅ 密码不会被保存或上传
-- ✅ 首个发布版账号同步主打印象笔记中国版
-- ✅ Evernote 国际版或其他来源建议先导出 ENEX 后使用文件导入
-- ❌ **不支持**已启用两步验证的账号（需要应用密码）
-
-### 4. 开始迁移
-- 点击`开始导出和迁移`按钮
-- 实时查看迁移进度和状态
-- 完成后自动跳转到结果页面
-
-## ⚠️ 常见问题
-
-### Q：看不到账号密码输入框？
-**A：** 需要先点击"输入账号开始迁移"按钮，选择自动导出模式
-
-### Q：提示"Username not found"？
-**A：**
-1. 检查邮箱地址是否正确
-2. 确认选择了正确的印象笔记版本（中国/国际）
-3. 确认账号密码正确
-
-### Q：同步失败？
-**A：**
-1. 临时禁用代理设置：`unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy`
-2. 重启Web应用
-3. 检查网络连接
-
-### Q：两步验证账号如何处理？
-**A：** 需要在印象笔记账号设置中生成应用专用密码，使用应用密码登录
-
-## 🔧 故障排除
+## 启动
 
 ```bash
-# 1. 重启Web应用（禁用代理）
 unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
-python migrate.py web
-
-# 2. 运行网络诊断
-python debug_sync_failure.py
-
-# 3. 检查详细错误信息
-# 查看终端输出的完整错误日志
+python3 migrate.py web
 ```
 
-## 📞 获取帮助
+服务默认绑定 `127.0.0.1`，启动后会自动打开本地浏览器。不要把该服务暴露到公网。
 
-如果遇到问题：
-1. 查看终端输出的错误信息
-2. 运行诊断工具：`python debug_sync_failure.py`
-3. 参考：[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
-4. GitHub Issues：https://github.com/vibecoddd/evernote-to-obsidian/issues
+## 使用步骤
 
----
+1. 进入“迁移”页面。
+2. 选择“自动导出模式”或“文件上传模式”。
+3. 明确填写目标 Obsidian vault 路径。
+4. 开始迁移并等待后台任务完成。
+5. 在“结果”页面查看服务端任务历史、报告和缓存清理入口。
 
-💡 **提示**：首次使用建议先用测试账号尝试，确保网络和配置正常后再迁移重要数据。
+## 自动导出模式
+
+自动模式会调用 `evernote-backup==1.13.1`：
+
+- 首个发布版主打印象笔记中国版。
+- 密码只用于当前同步流程，不写入任务状态或日志。
+- 如果启用了两步验证，请使用应用专用密码。
+
+## 文件上传模式
+
+上传 `.enex` 文件后，后端会创建任务并后台执行。页面会先加入当前任务的 Socket.IO room，再接收进度事件。
+
+## 故障排除
+
+```bash
+python3 migrate.py doctor --vault /path/to/ObsidianVault
+python3 migrate.py report <task_id> --json
+python3 migrate.py resume <task_id>
+```
+
+如需删除本地任务缓存：
+
+```bash
+python3 migrate.py cleanup <task_id> --yes
+```

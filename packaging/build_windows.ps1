@@ -5,8 +5,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-& $Python -m pip install -r requirements.txt
-& $Python -m pip install pyinstaller
+& $Python -m pip install -r requirements-dev.txt
 & $Python -m PyInstaller --clean --noconfirm $Spec
 & $Python packaging/smoke_test.py
 

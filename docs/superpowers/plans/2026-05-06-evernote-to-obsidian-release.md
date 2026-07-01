@@ -239,7 +239,7 @@ git commit -m "feat: add release CLI commands"
 
 **Files:**
 - Create: `src/evernote_to_obsidian/web.py`
-- Modify: `web_app.py`
+- Modify: `src/evernote_to_obsidian/web.py`
 - Modify: `templates/migrate.html`
 - Modify: `templates/results.html`
 - Modify: `static/js/app.js`
@@ -263,9 +263,9 @@ Expected: FAIL because release Web wrapper does not exist yet.
 
 Implement `create_app()` and local task registry backed by `MigrationRunner`. Keep server binding default to `127.0.0.1`; random port selection is handled by CLI `web`.
 
-- [ ] **Step 3: Update root `web_app.py`**
+- [ ] **Step 3: Update Web entry point**
 
-Make root script delegate to `evernote_to_obsidian.web:main` and preserve `python web_app.py` behavior.
+Use `python migrate.py web` as the supported Web entry point.
 
 - [ ] **Step 4: Update frontend API calls**
 
@@ -282,7 +282,7 @@ Expected: PASS.
 Run:
 
 ```bash
-git add src/evernote_to_obsidian/web.py web_app.py templates/migrate.html templates/results.html static/js/app.js tests/test_web_release.py
+git add src/evernote_to_obsidian/web.py templates/migrate.html templates/results.html static/js/app.js tests/test_web_release.py
 git commit -m "feat: connect web UI to migration engine"
 ```
 
@@ -330,4 +330,3 @@ Run:
 git add packaging docs README.md WEB_USAGE_GUIDE.md
 git commit -m "chore: add release packaging and docs"
 ```
-

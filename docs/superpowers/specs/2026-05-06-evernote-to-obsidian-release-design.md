@@ -27,7 +27,7 @@ The first release focuses on Yinxiang/Evernote China account sync plus local ENE
 The current repository already contains a prototype migration stack:
 
 - `migrate.py` and `src/unified_migrator.py` provide a CLI-oriented migration flow.
-- `web_app.py`, `templates/`, and `static/` provide a Flask/Socket.IO Web interface.
+- `src/evernote_to_obsidian/web.py`, `templates/`, and `static/` provide the Flask/Socket.IO Web interface.
 - `src/evernote_exporter.py` shells out to `evernote-backup`.
 - `src/enex_parser.py`, `src/markdown_converter.py`, and `src/file_organizer.py` parse ENEX, convert notes, and write files.
 - `src/deduplication_manager.py`, `src/sync_manager.py`, and `src/obsidian_manager.py` contain early support for deduplication, sync state, and vault setup.
@@ -343,4 +343,3 @@ Versioning:
 7. Add tests and sample ENEX fixtures.
 8. Add packaging scripts and release smoke tests.
 9. Update documentation for release users.
-

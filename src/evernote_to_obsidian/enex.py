@@ -4,6 +4,7 @@ import base64
 import hashlib
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 
@@ -12,28 +13,43 @@ from .models import Note, Resource
 
 class ENEXParser:
     def parse_file(self, enex_path: str | Path) -> tuple[list[Note], str]:
-        path = Path(enex_path)
-        if not path.exists():
-            raise FileNotFoundError(f"ENEX file not found: {path}")
+        path = self._validate_file(enex_path)
+        notebook = self.notebook_name(path)
+        return list(self.iter_notes(path, notebook_name=notebook)), notebook
 
+    def notebook_name(self, enex_path: str | Path) -> str:
+        path = self._validate_file(enex_path)
         try:
-            root = ET.parse(path).getroot()
+            with path.open("rb") as handle:
+                for _event, element in ET.iterparse(handle, events=("end",)):
+                    if element.tag == "notebook" and element.text and element.text.strip():
+                        return self._clean_text(element.text)
+                    if element.tag == "note":
+                        break
+        except ET.ParseError as exc:
+            raise ValueError(f"Invalid ENEX XML: {path}: {exc}") from exc
+        return self._clean_text(path.stem) or "Default Notebook"
+
+    def iter_notes(self, enex_path: str | Path, notebook_name: str | None = None) -> Iterator[Note]:
+        path = self._validate_file(enex_path)
+        notebook = notebook_name or self.notebook_name(path)
+        try:
+            with path.open("rb") as handle:
+                for _event, element in ET.iterparse(handle, events=("end",)):
+                    if element.tag != "note":
+                        continue
+                    note = self._parse_note(element)
+                    note.notebook = notebook
+                    yield note
+                    element.clear()
         except ET.ParseError as exc:
             raise ValueError(f"Invalid ENEX XML: {path}: {exc}") from exc
 
-        notebook = self._notebook_name(root, path)
-        notes: list[Note] = []
-        for note_el in root.findall("note"):
-            note = self._parse_note(note_el)
-            note.notebook = notebook
-            notes.append(note)
-        return notes, notebook
-
-    def _notebook_name(self, root: ET.Element, path: Path) -> str:
-        notebook_el = root.find("notebook")
-        if notebook_el is not None and notebook_el.text and notebook_el.text.strip():
-            return self._clean_text(notebook_el.text)
-        return self._clean_text(path.stem) or "Default Notebook"
+    def _validate_file(self, enex_path: str | Path) -> Path:
+        path = Path(enex_path)
+        if not path.exists():
+            raise FileNotFoundError(f"ENEX file not found: {path}")
+        return path
 
     def _parse_note(self, note_el: ET.Element) -> Note:
         title = self._child_text(note_el, "title", "Untitled Note")
@@ -163,4 +179,3 @@ class ENEXParser:
         text = text.strip()
         text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", text)
         return text
-
