@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 
-import type { ApiClient } from "../api/client";
+import { ApiError, type ApiClient } from "../api/client";
 import { initialWizardState } from "../domain/wizardReducer";
 import { PreflightStep } from "./PreflightStep";
 
@@ -31,4 +31,29 @@ test("keeps confirmation unavailable when preflight reports blocking errors", as
 
   expect(await screen.findByText("Select a Vault")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "确认并开始迁移" })).toBeDisabled();
+});
+
+test("clears a prior successful preflight when a later 422 response rejects", async () => {
+  const api = {
+    preflight: vi.fn()
+      .mockResolvedValueOnce({ ok: true, errors: [], warnings: [], summary: { source_mode: "enex", enex_files: ["/exports/work.enex"], vault: "/vault" } })
+      .mockRejectedValueOnce(new ApiError(422, "vault_missing", "Select a Vault")),
+  } as unknown as ApiClient;
+  const dispatch = vi.fn();
+  const { rerender } = render(<PreflightStep state={readyState} api={api} dispatch={dispatch} onConfirm={vi.fn()} />);
+
+  expect(await screen.findByRole("button", { name: "确认并开始迁移" })).toBeEnabled();
+
+  const changedState = {
+    ...readyState,
+    target: { ...readyState.target, output: { ...readyState.target.output, obsidian_vault: "/other-vault" } },
+  };
+  rerender(<PreflightStep state={changedState} api={api} dispatch={dispatch} onConfirm={vi.fn()} />);
+
+  expect(await screen.findByText("Select a Vault")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "确认并开始迁移" })).toBeDisabled();
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "preflight/result",
+    result: expect.objectContaining({ ok: false, errors: [{ code: "vault_missing", message: "Select a Vault" }], warnings: [] }),
+  });
 });

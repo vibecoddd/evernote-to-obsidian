@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type Dispatch } from "react";
 
-import type { ApiClient } from "../api/client";
+import { ApiError, type ApiClient } from "../api/client";
 import type { MigrationRequest, PreflightResult, WizardAction, WizardState } from "../domain/types";
 import { ErrorPanel } from "./ErrorPanel";
 
@@ -13,7 +13,18 @@ export function PreflightStep({ state, api, dispatch, onConfirm }: { state: Wiza
   useEffect(() => {
     let active = true;
     setLoading(true);
-    void api.preflight(config).then((result) => { if (active) { setResponse(result); dispatch({ type: "preflight/result", result }); dispatch({ type: "error/clear" }); } }).catch(() => { if (active) dispatch({ type: "error", message: "预检失败，请检查后端连接后重试。" }); }).finally(() => { if (active) setLoading(false); });
+    void api.preflight(config).then((result) => { if (active) { setResponse(result); dispatch({ type: "preflight/result", result }); dispatch({ type: "error/clear" }); } }).catch((error: unknown) => {
+      if (!active) return;
+      const result: PreflightResult = {
+        ok: false,
+        errors: error instanceof ApiError ? [{ code: error.code, message: error.message }] : [],
+        warnings: [],
+        summary: { source_mode: config.source_mode, enex_files: config.input.enex_files, vault: config.output.obsidian_vault || null },
+      };
+      setResponse(result);
+      dispatch({ type: "preflight/result", result });
+      dispatch({ type: "error", message: "预检失败，请检查后端连接后重试。" });
+    }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [api, config, dispatch]);
   const result = response ?? state.preflight;

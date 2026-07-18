@@ -18,3 +18,21 @@
 ## Concerns
 
 - Migration progress, cancellation, results, and opening the Vault intentionally remain Task 6 work. The setup confirmation only changes the wizard stage.
+
+## Fixes
+
+### Changed files
+
+- `frontend/src/components/PreflightStep.tsx` now replaces prior successful preflight state with a blocking result after a rejected preflight request and exposes `ApiError` validation details.
+- `frontend/src/components/PreflightStep.test.tsx` covers a successful preflight followed by a rejected HTTP 422 response; the confirmation remains disabled and the validation issue is shown.
+
+### Tests
+
+- `npm run test:frontend -- frontend/src/components/PreflightStep.test.tsx` — 3 tests passed.
+- `npm run test:frontend -- frontend/src/components` — 2 files, 4 tests passed.
+- `npm run test:frontend` — 8 files, 28 tests passed.
+- `npm run typecheck` — passed.
+
+### Concerns
+
+- The API client currently exposes the first structured validation issue through `ApiError`; the preflight UI displays that issue while preserving the existing generic connection guidance.
