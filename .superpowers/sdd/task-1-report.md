@@ -32,10 +32,31 @@ The existing user modification in `欢迎使用Obsidian.md` was preserved and wa
 
 ## Concerns
 
-1. The brief specified `"test:frontend": "vitest run"`, but with no frontend test file in the brief’s allowed file list, plain Vitest exits 1. The script uses `vitest run --passWithNoTests` so the required baseline command succeeds; later frontend tests will still run normally.
-2. `npm install` reported Node engine warnings because the workspace runtime is Node `v21.7.3` while the installed latest Electron package requires Node `>=22.12.0`. Typechecking and builds pass in this environment, but the project should standardize on a supported Node runtime before relying on Electron development commands.
+1. The baseline test and focused Vitest configuration now resolve the no-test failure; `test:frontend` is the exact required `vitest run` command.
+2. The workspace declares Node `>=22.12.0` and npm `>=10.0.0`, matching the installed Electron `43.1.1` Node requirement. The current workspace runtime remains Node `v21.7.3`, so npm continues to report the expected unsupported-engine warning until the runtime is upgraded.
 3. `npm audit` reports 2 development-tool vulnerabilities (1 high in Vite and 1 critical in Vitest UI dependency paths). `npm audit --omit=dev` reports zero production dependency vulnerabilities. These are existing toolchain-version concerns for follow-up, not runtime blockers for this baseline.
 
 ## Commit
 
-`69728d5` (`build: scaffold Electron React workspace`). This report update is the follow-up documentation commit.
+Task 1 implementation commits:
+
+- `69728d5` (`build: scaffold Electron React workspace`)
+- `38b8e3f` (`fix: address Task 1 foundation review findings`)
+
+## Fixes
+
+Changed files:
+
+- `package.json`: removed root `type: module`, set the exact `test:frontend` script, pinned all direct dependencies, and declared Node/npm engines.
+- `package-lock.json`: synchronized the pinned manifest versions and engine metadata.
+- `vitest.config.ts`: added the focused JSDOM frontend test configuration.
+- `frontend/src/test/setup.ts`: added Jest DOM matchers and the renderer root fixture.
+- `frontend/src/main.test.tsx`: added the minimal startup-status baseline test.
+
+Exact verification commands and outputs:
+
+- `npm run typecheck` — exit 0; TypeScript renderer and Electron checks passed.
+- `npm run test:frontend` — exit 0; Vitest `v3.2.4`, 1 test file passed, 1 test passed.
+- `npm run build:renderer` — exit 0; Vite `v6.4.1` produced `dist/renderer/index.html` and the renderer bundle.
+- `npm run build:electron` — exit 0; TypeScript produced `dist-electron/electron/types.js`.
+- `npm run build` — exit 0; aggregate typecheck, frontend test, renderer build, and Electron build passed.
