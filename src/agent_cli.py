@@ -245,12 +245,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     captured_stdout = io.StringIO()
     captured_stderr = io.StringIO()
     try:
-        stream_context = (
-            contextlib.ExitStack()
-            if not args.json
-            else contextlib.ExitStack()
-        )
-        with stream_context as stack:
+        with contextlib.ExitStack() as stack:
             if args.json:
                 stack.enter_context(contextlib.redirect_stdout(captured_stdout))
                 stack.enter_context(contextlib.redirect_stderr(captured_stderr))
