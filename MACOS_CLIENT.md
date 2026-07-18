@@ -2,7 +2,7 @@
 
 macOS 桌面客户端由 Electron 承载 React/Vite 界面，并启动本地 Python Flask sidecar；不再使用 PyWebView。构建必须在 macOS 上进行。
 
-> **前提：** 在运行下列 `npm install` 或 macOS 打包命令前，必须先安装并使用 **Node.js >=22.12.0**。npm 的 engine 警告不足以阻止不受支持的 Node 版本继续安装或构建，因此不能把警告当作兼容性检查；发布打包必须使用 Node 22.12+。完整的当前命令和故障排除以 [ELECTRON_CLIENT.md](ELECTRON_CLIENT.md) 为准。
+> **前提：** 必须先安装并使用 **Node.js >=22.12.0**。npm 的 engine 警告不足以阻止不受支持的 Node 版本继续安装或构建，因此不能把警告当作兼容性检查；发布打包必须使用 Node 22.12+。运行下列 `npm install` 或 macOS 打包命令前必须满足这一前提。完整的当前命令和故障排除以 [ELECTRON_CLIENT.md](ELECTRON_CLIENT.md) 为准。
 
 ```bash
 npm install

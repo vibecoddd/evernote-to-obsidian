@@ -4,7 +4,7 @@
 
 ## 重要：Node.js 运行时前提
 
-在干净 checkout 中运行 `npm install`、`npm run build` 或启动 Electron 前，必须先安装并使用 **Node.js >=22.12.0**（`package.json` 也声明了此下限）。npm 的 engine 警告不足以阻止不受支持的 Node 版本继续安装或构建，因此不能把警告当作兼容性检查。发布打包必须使用 Node 22.12+；请在开始安装依赖或执行任意 Electron 命令前用 `node --version` 确认运行时版本。
+必须先安装并使用 **Node.js >=22.12.0**（`package.json` 也声明了此下限）。npm 的 engine 警告不足以阻止不受支持的 Node 版本继续安装或构建，因此不能把警告当作兼容性检查。发布打包必须使用 Node 22.12+；请用 `node --version` 确认运行时版本。在干净 checkout 中运行 `npm install`、`npm run build` 或启动 Electron 前都必须满足这一前提。
 
 ## 本地开发
 

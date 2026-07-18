@@ -52,7 +52,7 @@ python3 migrate.py
 
 ### 🖥️ Electron 桌面客户端
 
-桌面客户端使用 Electron、React/Vite 和本地 Python 服务；双击安装后的应用即可使用，无需手动启动浏览器或 Flask。**在干净 checkout 中运行 `npm install`、`npm run build` 或启动 Electron 前，必须先安装并使用 Node.js >=22.12.0。** npm 的 engine 警告不足以阻止不受支持的版本继续运行；发布打包必须使用 Node 22.12+。先用 `node --version` 确认版本，再安装 Node 依赖和 Python 桌面构建依赖：
+桌面客户端使用 Electron、React/Vite 和本地 Python 服务；双击安装后的应用即可使用，无需手动启动浏览器或 Flask。**必须先安装并使用 Node.js >=22.12.0。** npm 的 engine 警告不足以阻止不受支持的版本继续运行；发布打包必须使用 Node 22.12+。先用 `node --version` 确认版本；在干净 checkout 中运行 `npm install`、`npm run build` 或启动 Electron 前都必须满足这一前提，再安装 Node 依赖和 Python 桌面构建依赖：
 
 ```bash
 npm install

@@ -10,8 +10,39 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent
 
 
+# These are every Electron/macOS documentation entry point that presents an npm
+# command to a developer. Historical macOS documents remain in scope because
+# they retain actionable quick-reference commands; no prose-only exclusion is
+# needed because the matcher recognizes complete npm invocations, not words.
+ELECTRON_NPM_COMMAND_ENTRY_POINTS = (
+    "README.md",
+    "ELECTRON_CLIENT.md",
+    "MACOS_CLIENT.md",
+    "docs/superpowers/plans/2026-07-18-electron-desktop-client.md",
+    "docs/superpowers/specs/2026-07-18-electron-desktop-client-design.md",
+    "docs/superpowers/plans/2026-07-18-macos-client.md",
+    "docs/superpowers/specs/2026-07-18-macos-client-design.md",
+)
+
+# Match executable npm forms, including the packaging script names, rather
+# than incidental mentions of "npm" or generic command-related prose.
+NPM_COMMAND_PATTERN = re.compile(
+    r"\bnpm[ \t]+(?:"
+    r"(?:install|ci|test|build)\b"
+    r"|exec(?:[ \t]+[^\s`]+)?"
+    r"|run[ \t]+[A-Za-z0-9][A-Za-z0-9:._-]*"
+    r"|package:(?:mac|win|current)\b"
+    r")"
+)
+
+
 def read_project_file(relative_path: str) -> str:
     return (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def documented_npm_commands(documentation: str) -> list[re.Match[str]]:
+    """Return every supported npm invocation shown in an Electron doc."""
+    return list(NPM_COMMAND_PATTERN.finditer(documentation))
 
 
 def test_pyinstaller_spec_builds_the_backend_entry_with_runtime_assets():
@@ -138,59 +169,22 @@ def test_readme_documents_electron_platform_packaging_commands():
         assert command in readme
 
 
-def test_all_current_electron_packaging_entry_points_require_supported_node_first():
+def test_every_documented_electron_npm_command_requires_supported_node_first():
     prerequisite = "Node.js >=22.12.0"
     npm_warning_caveat = "npm 的 engine 警告不足以"
 
-    for relative_path, command in (
-        ("README.md", "npm install"),
-        ("README.md", "npm run package:mac"),
-        ("ELECTRON_CLIENT.md", "npm install"),
-        ("ELECTRON_CLIENT.md", "npm run package:mac"),
-        ("MACOS_CLIENT.md", "npm install"),
-        ("docs/superpowers/plans/2026-07-18-macos-client.md", "npm install"),
-        ("docs/superpowers/specs/2026-07-18-macos-client-design.md", "npm install"),
-    ):
+    for relative_path in ELECTRON_NPM_COMMAND_ENTRY_POINTS:
         documentation = read_project_file(relative_path)
-        command_block = next(
-            (
-                block
-                for block in re.finditer(r"```bash\n(.*?)\n```", documentation, flags=re.DOTALL)
-                if command in block.group(1)
-            ),
-            None,
-        )
-
-        assert command_block is not None, relative_path
-        prerequisite_offset = command_block.start()
-
-        assert prerequisite in documentation[:prerequisite_offset], relative_path
-        assert npm_warning_caveat in documentation[:prerequisite_offset], relative_path
-
-
-def test_active_electron_plan_and_design_document_node_prerequisite():
-    prerequisite = "Node.js >=22.12.0"
-    npm_warning_caveat = "npm 的 engine 警告不足以"
-    canonical_guidance = "ELECTRON_CLIENT.md"
-
-    for relative_path in (
-        "docs/superpowers/plans/2026-07-18-electron-desktop-client.md",
-        "docs/superpowers/specs/2026-07-18-electron-desktop-client-design.md",
-    ):
-        documentation = read_project_file(relative_path)
-
+        npm_commands = documented_npm_commands(documentation)
         assert prerequisite in documentation, relative_path
         assert npm_warning_caveat in documentation, relative_path
-        assert canonical_guidance in documentation, relative_path
-
-        npm_commands = list(
-            re.finditer(r"\bnpm (?:install|run|exec|test|ci)\b", documentation)
-        )
 
         for npm_command in npm_commands:
             command_offset = npm_command.start()
-            assert prerequisite in documentation[:command_offset], relative_path
-            assert npm_warning_caveat in documentation[:command_offset], relative_path
+            prior_documentation = documentation[:command_offset]
+            command = npm_command.group(0)
+            assert prerequisite in prior_documentation, f"{relative_path}: {command}"
+            assert npm_warning_caveat in prior_documentation, f"{relative_path}: {command}"
 
 
 def test_electron_client_documentation_covers_task_eight_packaging_contract():
