@@ -24,14 +24,14 @@ ELECTRON_NPM_COMMAND_ENTRY_POINTS = (
     "docs/superpowers/specs/2026-07-18-macos-client-design.md",
 )
 
-# Match executable npm forms, including the packaging script names, rather
-# than incidental mentions of "npm" or generic command-related prose.
+# Match only executable npm forms used by this project, rather than incidental
+# mentions of "npm" or unsupported command-like prose.
 NPM_COMMAND_PATTERN = re.compile(
     r"\bnpm[ \t]+(?:"
-    r"(?:install|ci|test|build)\b"
-    r"|exec(?:[ \t]+[^\s`]+)?"
+    r"(?:install|ci)\b"
+    r"|test\b(?:[ \t]+(?:--[^\s`]*|-[^\s`]+))*"
+    r"|exec[ \t]+[^\s`]+"
     r"|run[ \t]+[A-Za-z0-9][A-Za-z0-9:._-]*"
-    r"|package:(?:mac|win|current)\b"
     r")"
 )
 
@@ -43,6 +43,41 @@ def read_project_file(relative_path: str) -> str:
 def documented_npm_commands(documentation: str) -> list[re.Match[str]]:
     """Return every supported npm invocation shown in an Electron doc."""
     return list(NPM_COMMAND_PATTERN.finditer(documentation))
+
+
+def test_documented_npm_commands_only_matches_supported_executable_forms():
+    documentation = """
+    npm install --ignore-scripts
+    npm ci
+    npm test -- --run
+    npm run build
+    npm run build:renderer
+    npm run build:electron
+    npm run package:mac
+    npm run package:win
+    npm run package:current
+    npm run dev:renderer
+    npm exec electron-builder -- --mac
+    npm build
+    npm package:mac
+    npm exec
+    npm run
+    npm command
+    """
+
+    assert [match.group(0) for match in documented_npm_commands(documentation)] == [
+        "npm install",
+        "npm ci",
+        "npm test -- --run",
+        "npm run build",
+        "npm run build:renderer",
+        "npm run build:electron",
+        "npm run package:mac",
+        "npm run package:win",
+        "npm run package:current",
+        "npm run dev:renderer",
+        "npm exec electron-builder",
+    ]
 
 
 def test_pyinstaller_spec_builds_the_backend_entry_with_runtime_assets():

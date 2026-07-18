@@ -41,3 +41,7 @@
 - Replaced the hand-picked documentation command tuple with one explicit inventory of all active and historical Electron/macOS command entry points. The regression test now enumerates each supported, concrete npm invocation (`install`, `ci`, `exec`, `run`, `test`, `build`, and the three platform packaging scripts) and requires the Node.js >=22.12.0 prerequisite and npm engine-warning caveat before every match.
 - Kept both historical macOS documents in scope because they retain actionable quick-reference commands; the matcher uses complete npm invocation forms so prose that merely mentions npm cannot create a false positive.
 - Reordered the prerequisite wording in README, Electron, and macOS guides so the textual prerequisite and caveat precede their command references as well as their command blocks.
+
+## Fixes
+
+- Tightened the exhaustive documentation matcher to recognize only supported executable npm forms: `install`, `ci`, `test` with flags, `run <script>`, and `exec <package>`. It now rejects unsupported direct `npm build` and `npm package:*` forms, a bare `npm exec`, and generic npm prose while preserving the per-document Node.js >=22.12.0 and npm engine-warning ordering checks.
