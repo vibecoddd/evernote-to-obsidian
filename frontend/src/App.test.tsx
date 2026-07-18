@@ -86,6 +86,54 @@ describe("setup wizard shell", () => {
     await waitFor(() => expect(window.desktop.confirmClose).toHaveBeenCalledOnce());
   });
 
+  test("finalizes an accepted close request when pending startup rejects", async () => {
+    const user = userEvent.setup();
+    let rejectStart: (reason?: unknown) => void;
+    vi.mocked(api.preflight).mockResolvedValue({ ok: true, errors: [], warnings: [], summary: { source_mode: "account", enex_files: [], vault: "/vault" } });
+    vi.mocked(api.start).mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectStart = reject; }));
+    vi.mocked(window.desktop.selectDirectory).mockResolvedValue("/vault");
+    render(<App api={api} />);
+
+    await user.type(screen.getByLabelText("用户名"), "name");
+    await user.type(screen.getByLabelText("密码"), "password");
+    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(screen.getByRole("button", { name: "选择 Vault 目录" }));
+    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(await screen.findByRole("button", { name: "确认并开始迁移" }));
+    await waitFor(() => expect(window.desktop.setMigrationActive).toHaveBeenCalledWith(true));
+
+    closeListener?.();
+    await user.click(await screen.findByRole("button", { name: "取消迁移并关闭" }));
+    rejectStart!(new Error("启动失败"));
+
+    await waitFor(() => expect(window.desktop.confirmClose).toHaveBeenCalledOnce());
+    expect(api.cancel).not.toHaveBeenCalled();
+  });
+
+  test("finalizes an accepted close request when pending startup returns no task id", async () => {
+    const user = userEvent.setup();
+    let resolveStart: (value: Awaited<ReturnType<ApiClient["start"]>>) => void;
+    vi.mocked(api.preflight).mockResolvedValue({ ok: true, errors: [], warnings: [], summary: { source_mode: "account", enex_files: [], vault: "/vault" } });
+    vi.mocked(api.start).mockImplementationOnce(() => new Promise((resolve) => { resolveStart = resolve; }));
+    vi.mocked(window.desktop.selectDirectory).mockResolvedValue("/vault");
+    render(<App api={api} />);
+
+    await user.type(screen.getByLabelText("用户名"), "name");
+    await user.type(screen.getByLabelText("密码"), "password");
+    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(screen.getByRole("button", { name: "选择 Vault 目录" }));
+    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(await screen.findByRole("button", { name: "确认并开始迁移" }));
+    await waitFor(() => expect(window.desktop.setMigrationActive).toHaveBeenCalledWith(true));
+
+    closeListener?.();
+    await user.click(await screen.findByRole("button", { name: "取消迁移并关闭" }));
+    resolveStart!({ success: false, task_id: "", message: "迁移未能启动。" });
+
+    await waitFor(() => expect(window.desktop.confirmClose).toHaveBeenCalledOnce());
+    expect(api.cancel).not.toHaveBeenCalled();
+  });
+
   test("dismisses a close request with Escape and restores focus without changing migration state", async () => {
     const user = userEvent.setup();
     vi.mocked(api.preflight).mockResolvedValue({ ok: true, errors: [], warnings: [], summary: { source_mode: "account", enex_files: [], vault: "/vault" } });

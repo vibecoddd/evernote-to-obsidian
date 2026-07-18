@@ -99,7 +99,6 @@ class WebMigrator:
             try:
                 print(f"收到迁移请求")
                 config_data = request.get_json()
-                print(f"配置数据: {config_data}")
 
                 if not config_data:
                     return jsonify({
@@ -144,7 +143,6 @@ class WebMigrator:
             try:
                 print(f"收到迁移请求")
                 config_data = request.get_json()
-                print(f"配置数据: {config_data}")
 
                 if not config_data:
                     return jsonify({
@@ -204,7 +202,6 @@ class WebMigrator:
             try:
                 print(f"收到导出ENEX请求")
                 config_data = request.get_json()
-                print(f"配置数据: {config_data}")
 
                 if not config_data:
                     return jsonify({
@@ -396,8 +393,6 @@ class WebMigrator:
                 task_id, self.socketio, self.active_migrations, cancel_event,
             )
             migrator.config = config
-
-            print(f"📝 配置信息: {config.get_all()}")
 
             # 运行迁移
             print(f"▶️  开始执行迁移...")

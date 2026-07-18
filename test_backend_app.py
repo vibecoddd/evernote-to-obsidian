@@ -58,6 +58,43 @@ def test_preflight_endpoint_uses_contract_status_codes(tmp_path):
     assert invalid.get_json()["ok"] is False
 
 
+def test_migration_request_and_config_logs_redact_password(monkeypatch, capsys):
+    import web_app
+    from config import Config
+    from web_app import WebMigrator
+
+    class NoopThread:
+        def __init__(self, **kwargs):
+            pass
+
+        daemon = False
+
+        def start(self):
+            pass
+
+    class Handler:
+        def __init__(self, *args):
+            self.stats = {}
+
+        def run_migration(self):
+            return True
+
+    secret = "do-not-log-this-password"
+    monkeypatch.setattr(web_app.threading, "Thread", NoopThread)
+    monkeypatch.setattr(web_app, "WebMigrationHandler", Handler)
+    migrator = WebMigrator()
+
+    response = migrator.app.test_client().post("/api/start_migration", json={
+        "evernote_credentials": {"username": "person@example.com", "password": secret},
+    })
+    config = Config()
+    config.config_data = {"evernote_credentials": {"username": "person@example.com", "password": secret}}
+    migrator._run_migration_task("redacted-task", config)
+
+    assert response.status_code == 200
+    assert secret not in capsys.readouterr().out
+
+
 def test_cancel_endpoint_sets_known_task_event_and_rejects_unknown_task():
     from web_app import WebMigrator
 

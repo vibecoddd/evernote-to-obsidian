@@ -16,6 +16,7 @@ export function App({ api }: { api: ApiClient }) {
   const [closeCancellationInFlight, setCloseCancellationInFlight] = useState(false);
   const closeCancellationInFlightRef = useRef(false);
   const closeCancellationTaskRef = useRef<string | null>(null);
+  const closeConfirmationFinalizedRef = useRef(false);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
   const taskIsActive = state.migration.status === "running" || state.migration.status === "cancelling";
@@ -25,6 +26,7 @@ export function App({ api }: { api: ApiClient }) {
       setCloseRequested(true);
       setCloseCancellationRequested(false);
       closeCancellationTaskRef.current = null;
+      closeConfirmationFinalizedRef.current = false;
     }
     else void window.desktop.confirmClose();
   }), [taskIsActive]);
@@ -65,7 +67,11 @@ export function App({ api }: { api: ApiClient }) {
     setCloseCancellationInFlight(true);
     const progressBeforeCancellation = state.migration;
     dispatch({ type: "migration/progress", progress: { ...progressBeforeCancellation, status: "cancelling", message: "正在取消迁移…" } });
-    void api.cancel(state.migration.taskId).then(() => window.desktop.confirmClose()).catch(() => {
+    void api.cancel(state.migration.taskId).then(() => {
+      if (closeConfirmationFinalizedRef.current) return;
+      closeConfirmationFinalizedRef.current = true;
+      return window.desktop.confirmClose();
+    }).catch(() => {
       closeCancellationTaskRef.current = null;
       dispatch({ type: "migration/progress", progress: { ...progressBeforeCancellation, status: "running", message: "迁移仍在进行。" } });
       dispatch({ type: "error", message: "无法取消迁移，窗口将保持打开。" });
@@ -76,6 +82,12 @@ export function App({ api }: { api: ApiClient }) {
       setCloseCancellationInFlight(false);
     });
   }, [api, closeCancellationRequested, state.migration, taskIsActive]);
+
+  useEffect(() => {
+    if (!closeCancellationRequested || taskIsActive || closeCancellationInFlightRef.current || closeConfirmationFinalizedRef.current) return;
+    closeConfirmationFinalizedRef.current = true;
+    void window.desktop.confirmClose();
+  }, [closeCancellationRequested, taskIsActive]);
 
   const canGoNext = !taskIsActive && (state.step === 0 ? sourceIsValid(state.source) : state.step === 1 ? targetIsValid(state.target) : false);
   const canGoBack = !taskIsActive && state.step > 0 && state.step < 3;

@@ -48,3 +48,18 @@
 ### Remaining concern
 
 - Status reconciliation is deliberately retained as a 250 ms fallback because the current start API allocates the task ID server-side; it guarantees observation of persisted terminal state if a fast Socket.IO event occurs before room membership, at the cost of short-lived polling while a migration is active.
+
+## Fixes
+
+- Finalized an accepted native close request if migration startup rejects or completes without a usable task ID. The normal task-ID path still cancels through the backend; close confirmation is single-shot so a failed startup cannot leave the modal open indefinitely.
+- Removed raw request and configuration logging from all `web_app.py` migration/export start paths and the migration worker, preventing `evernote_credentials.password` and other supplied credential fields from being printed.
+- Added regression coverage for accepted close requests followed by rejected and no-ID starts, plus a backend capture test that proves a submitted password is absent from request and worker logs.
+
+### Fix verification
+
+- `npm run test:frontend -- frontend/src/App.test.tsx frontend/src/components/MigrationStep.test.tsx` — 2 files, 9 tests passed.
+- `.venv/bin/pytest -q test_backend_app.py` — 12 passed (one existing Eventlet deprecation warning).
+- `.venv/bin/pytest -q test_backend_app.py test_desktop_api.py test_web_integration.py` — 16 passed, 1 skipped (one existing Eventlet deprecation warning).
+- `npm run test:frontend` — 10 files, 37 tests passed.
+- `npm run typecheck` — passed.
+- `npm run build` — passed; typecheck, 37 frontend tests, renderer build, and Electron compilation completed.
