@@ -1,6 +1,6 @@
 # Electron 桌面客户端
 
-桌面客户端使用 Electron 主进程承载 React/Vite renderer，并将迁移 API 作为 Python Flask sidecar 运行。它替代了旧的 PyWebView 客户端；`web_app.py`、`templates/`、`static/` 和迁移源代码仍是 Web 模式与 sidecar 共用的运行时资源。
+桌面客户端使用 Electron 主进程承载 React/Vite renderer，并将迁移 API 作为 Python Flask sidecar 运行。它替代了旧的 PyWebView 客户端，桌面用户不需要 PyWebView；`web_app.py`、`templates/`、`static/` 和迁移源代码仍是 Web 模式与 sidecar 共用的运行时资源。
 
 ## 本地开发
 

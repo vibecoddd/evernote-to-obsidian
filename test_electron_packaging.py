@@ -118,8 +118,25 @@ def test_readme_documents_electron_platform_packaging_commands():
         assert command in readme
 
 
-def test_electron_client_documentation_covers_sidecar_and_platforms():
+def test_electron_client_documentation_covers_task_eight_packaging_contract():
     documentation = read_project_file("ELECTRON_CLIENT.md")
 
-    for topic in ("loopback", "Python sidecar", "macOS", "Windows"):
+    for topic in (
+        "npm install",
+        "npm run package:mac",
+        "npm run package:win",
+        "127.0.0.1",
+        "动态端口",
+        "Python sidecar",
+        "/api/healthz",
+        "15 秒",
+        "停止 sidecar",
+        ".dmg",
+        "NSIS",
+        "Windows 路径",
+        "缺失",
+        "签名",
+        "公证",
+        "不需要 PyWebView",
+    ):
         assert topic in documentation

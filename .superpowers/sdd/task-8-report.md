@@ -5,3 +5,11 @@
 - Removed PyWebView from normal requirements; `requirements-desktop-build.txt` continues to include normal requirements plus PyInstaller.
 - Updated Electron packaging documentation assertions and ran `.venv/bin/pytest -q test_electron_packaging.py test_web_environment.py test_web_integration.py` (7 passed, 1 skipped), `npm run typecheck`, and `npm run build` (38 frontend tests passed).
 - Concerns: the local Node runtime is v21.7.3 while the project declares Node >=22.12.0. npm installation and the requested typecheck/build completed, but emitted engine warnings; release builds should use the declared Node version. npm also reported two dependency-audit vulnerabilities that are outside Task 8 scope. One concurrent full frontend-suite run had an existing focus assertion failure in `frontend/src/App.test.tsx`; the isolated test then passed three consecutive runs, and Task 8 does not modify that UI code.
+
+## Fixes
+
+- Reclassified the legacy macOS plan and design as historical context and directed all current implementation, packaging, and troubleshooting guidance to the Electron plan, design, and `ELECTRON_CLIENT.md` commands.
+- Updated the Electron plan's completed-retirement wording so it no longer instructs readers to act on deleted PyWebView files, and stated explicitly in the Electron guide that desktop users do not need PyWebView.
+- Strengthened `test_electron_packaging.py` to require the Task 8 documentation contract: npm install and platform packaging commands, dynamic loopback startup, health timeout, sidecar shutdown, macOS `.dmg`, Windows NSIS and path handling, missing-resource diagnostics, signing/notarization, and no PyWebView requirement.
+- Verification: `.venv/bin/pytest -q test_electron_packaging.py test_web_environment.py test_web_integration.py` (7 passed, 1 skipped); `npm run typecheck` passed; `npm run build` passed with 38 frontend tests; `git diff --check` passed. The tracked-file reference scan found only the historical deletion record in this report.
+- Concerns: the existing Node-version and dependency-audit concerns above still apply. The npm build also emitted Vite's CJS Node API deprecation warning.

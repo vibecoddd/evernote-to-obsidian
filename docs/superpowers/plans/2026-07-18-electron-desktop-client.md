@@ -279,7 +279,7 @@ Run `.venv/bin/pytest -q test_electron_packaging.py && npm run typecheck && npm 
 
 ## Task 8: Document Electron and retire PyWebView desktop files
 
-**Files:** Create `ELECTRON_CLIENT.md`; modify `README.md`, `MACOS_CLIENT.md`, `requirements.txt`, `requirements-desktop-build.txt`, `test_electron_packaging.py`; delete after packaging validation `macos_app.py`, `test_macos_app.py`, `test_macos_packaging.py`, `scripts/build_macos_app.py`, `packaging/macos/evernote_to_obsidian.spec`, `requirements-macos-build.txt`.
+**Files:** Create `ELECTRON_CLIENT.md`; modify `README.md`, `MACOS_CLIENT.md`, `requirements.txt`, `requirements-desktop-build.txt`, `test_electron_packaging.py`; the retired PyWebView entry point, tests, build script, PyInstaller spec, and macOS-only build requirements were deleted after packaging validation.
 
 **Interfaces:** Documentation uses Electron commands for macOS/Windows; normal Web users no longer install PyWebView; old PyWebView is no longer a supported desktop runtime.
 
