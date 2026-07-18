@@ -28,6 +28,17 @@ from desktop_api import preflight_config
 from unified_migrator import UnifiedMigrator
 
 
+def migration_stats_payload(stats: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the JSON-safe migration statistics exposed to renderer clients."""
+    return {
+        'total_notes': stats.get('total_notes', 0),
+        'converted_notes': stats.get('converted_notes', 0),
+        'skipped_notes': stats.get('skipped_notes', 0),
+        'total_attachments': stats.get('total_attachments', 0),
+        'errors': [str(error) for error in stats.get('errors', [])],
+    }
+
+
 class WebMigrator:
     """Web界面迁移器"""
 
@@ -365,12 +376,7 @@ class WebMigrator:
                 'progress': 0,
                 'message': '正在开始迁移...',
                 'start_time': datetime.now().isoformat(),
-                'stats': {
-                    'total_notes': 0,
-                    'converted_notes': 0,
-                    'total_attachments': 0,
-                    'errors': []
-                }
+                'stats': migration_stats_payload({})
             }
 
             print(f"📊 初始化任务状态: {self.active_migrations[task_id]}")
@@ -397,6 +403,7 @@ class WebMigrator:
             print(f"▶️  开始执行迁移...")
             success = migrator.run_migration()
             print(f"✅ 迁移完成，结果: {success}")
+            self.active_migrations[task_id]['stats'] = migration_stats_payload(migrator.stats)
 
             # 更新最终状态
             if cancel_event.is_set():
@@ -405,7 +412,11 @@ class WebMigrator:
                     'end_time': datetime.now().isoformat(),
                     'message': '迁移已取消，已写入的文件不会回滚'
                 })
-                self.socketio.emit('migration_cancelled', {'task_id': task_id}, room=task_id)
+                self.socketio.emit('migration_cancelled', {
+                    'task_id': task_id,
+                    'message': self.active_migrations[task_id]['message'],
+                    'result': self.active_migrations[task_id]
+                }, room=task_id)
             else:
                 self.active_migrations[task_id].update({
                     'status': 'completed' if success else 'failed',
@@ -426,7 +437,9 @@ class WebMigrator:
             import traceback
             traceback.print_exc()
 
-            self.active_migrations[task_id].update({
+            task = self.active_migrations.setdefault(task_id, {'stats': migration_stats_payload({})})
+            task['stats']['errors'].append(str(e))
+            task.update({
                 'status': 'failed',
                 'message': f'迁移错误: {str(e)}',
                 'end_time': datetime.now().isoformat()
@@ -434,7 +447,9 @@ class WebMigrator:
 
             self.socketio.emit('migration_error', {
                 'task_id': task_id,
-                'error': str(e)
+                'error': str(e),
+                'message': task['message'],
+                'result': task
             }, room=task_id)
             
     def _run_export_task(self, task_id: str, config: Config):
@@ -624,7 +639,9 @@ class WebMigrationHandler(UnifiedMigrator):
         """发送进度更新"""
         print(f"📈 进度更新: 步骤{step} - {step_name} ({progress}%) - {message}")
 
-        self.active_migrations[self.task_id].update({
+        task = self.active_migrations[self.task_id]
+        task['stats'] = migration_stats_payload(self.stats)
+        task.update({
             'step': step,
             'current_step_name': step_name,
             'progress': progress,
@@ -635,8 +652,10 @@ class WebMigrationHandler(UnifiedMigrator):
             'task_id': self.task_id,
             'step': step,
             'step_name': step_name,
+            'total_steps': task.get('total_steps', 4),
             'progress': progress,
-            'message': message
+            'message': message,
+            'stats': task['stats']
         }
 
         print(f"📤 发送进度数据: {progress_data}")
@@ -717,10 +736,12 @@ class WebMigrationHandler(UnifiedMigrator):
 
                         except Exception as e:
                             self.stats['skipped_notes'] += 1
+                            self.stats['errors'].append(str(file_path))
 
                     organizer.create_index_file(organized_notes, notebook_name)
 
                 except Exception as e:
+                    self.stats['errors'].append(str(enex_file))
                     self._emit_progress(2, '转换为Markdown', progress, f'跳过文件: {e}')
 
             self.stats['total_notes'] = total_notes

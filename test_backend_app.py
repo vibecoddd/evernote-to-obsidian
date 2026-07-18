@@ -90,7 +90,7 @@ def test_cancelled_task_emits_cancelled_event_before_major_steps():
     migrator._run_migration_task(task_id, Config())
 
     assert migrator.active_migrations[task_id]["status"] == "cancelled"
-    assert ("migration_cancelled", {"task_id": task_id}, task_id) in emitted
+    assert any(name == "migration_cancelled" and data["task_id"] == task_id and data["result"]["status"] == "cancelled" and room == task_id for name, data, room in emitted)
 
 
 def test_start_export_registers_cancellation_event(monkeypatch, tmp_path):
@@ -175,3 +175,88 @@ def test_export_task_preserves_created_files_when_cancelled_after_export(monkeyp
     assert migrator.active_migrations[task_id]["status"] == "cancelled"
     assert ("export_completed",) not in [(name,) for name, _, _ in emitted]
     assert ("export_cancelled", {"task_id": task_id}, task_id) in emitted
+
+
+def test_migration_terminal_state_and_event_include_handler_statistics(monkeypatch):
+    import web_app
+    from config import Config
+    from web_app import WebMigrator
+
+    class Handler:
+        def __init__(self, *args):
+            self.stats = {
+                "total_notes": 2,
+                "converted_notes": 1,
+                "skipped_notes": 1,
+                "total_attachments": 3,
+                "errors": ["/vault/failed.md"],
+            }
+
+        def run_migration(self):
+            return True
+
+    monkeypatch.setattr(web_app, "WebMigrationHandler", Handler)
+    migrator = WebMigrator()
+    emitted = []
+    migrator.socketio.emit = lambda name, data, room: emitted.append((name, data, room))
+
+    migrator._run_migration_task("statistics-task", Config())
+
+    result = migrator.active_migrations["statistics-task"]
+    assert result["stats"] == {
+        "total_notes": 2,
+        "converted_notes": 1,
+        "skipped_notes": 1,
+        "total_attachments": 3,
+        "errors": ["/vault/failed.md"],
+    }
+    assert ("migration_completed", {"task_id": "statistics-task", "success": True, "result": result}, "statistics-task") in emitted
+
+
+def test_conversion_records_each_failed_note_path_in_task_statistics(monkeypatch):
+    from config import Config
+    from web_app import WebMigrationHandler
+
+    class Note:
+        attachments = []
+
+    class Parser:
+        def parse_file(self, _path):
+            return [Note()], "Notebook"
+
+    class Converter:
+        def __init__(self, _config):
+            pass
+
+        def convert_note(self, _note):
+            return "# note"
+
+    class Organizer:
+        def __init__(self, _config):
+            pass
+
+        def organize_notes(self, notes, _notebook):
+            return [(notes[0], "/vault/failed.md")]
+
+        def create_directory_structure(self, _notes):
+            pass
+
+        def save_note(self, *_args):
+            raise OSError("disk full")
+
+        def create_index_file(self, *_args):
+            pass
+
+    monkeypatch.setattr("enex_parser.ENEXParser", Parser)
+    monkeypatch.setattr("markdown_converter.MarkdownConverter", Converter)
+    monkeypatch.setattr("file_organizer.FileOrganizer", Organizer)
+    active = {"failed-note-task": {"stats": {"errors": []}}}
+    emitted = []
+    handler = WebMigrationHandler("failed-note-task", type("Socket", (), {"emit": lambda *_args, **_kwargs: emitted.append(_args)})(), active)
+    config = Config()
+    config.config_data = {"input": {"enex_files": ["/exports/notes.enex"]}}
+    handler.config = config
+
+    assert handler._step_convert_to_markdown() is False
+    assert handler.stats["errors"] == ["/vault/failed.md"]
+    assert active["failed-note-task"]["stats"]["errors"] == ["/vault/failed.md"]

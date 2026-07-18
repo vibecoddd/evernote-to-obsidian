@@ -78,21 +78,31 @@ function normalizeStatus(data: JsonRecord, taskId: string): MigrationProgress {
 }
 
 export type MigrationEvent =
-  | { type: "progress"; taskId: string; progress: number; message: string; step?: number; stepName?: string }
+  | { type: "progress"; taskId: string; progress: number; message: string; step?: number; totalSteps?: number; stepName?: string; stats?: ProgressStatistics }
   | { type: "terminal"; taskId: string; result: TerminalResult };
+
+function terminalResult(payload: JsonRecord, fallbackStatus: TerminalResult["status"], fallbackMessage: string): TerminalResult {
+  const result = isRecord(payload.result) ? payload.result : payload;
+  const resultStatus = string(result.status);
+  const status = resultStatus === "completed" || resultStatus === "failed" || resultStatus === "cancelled" ? resultStatus : fallbackStatus;
+  return {
+    status,
+    message: string(result.message) ?? string(payload.message) ?? string(payload.error) ?? fallbackMessage,
+    stats: stats(result.stats) ?? stats(payload.stats),
+  };
+}
 
 export function normalizeMigrationEvent(name: string, payload: unknown): MigrationEvent | null {
   if (!isRecord(payload) || typeof payload.task_id !== "string") return null;
   const taskId = payload.task_id;
   if (name === "migration_progress" || name === "export_progress") {
-    return { type: "progress", taskId, progress: number(payload.progress) ?? 0, message: string(payload.message) ?? "", step: number(payload.step), stepName: string(payload.step_name) };
+    return { type: "progress", taskId, progress: number(payload.progress) ?? 0, message: string(payload.message) ?? "", step: number(payload.step), totalSteps: number(payload.total_steps), stepName: string(payload.step_name), stats: stats(payload.stats) };
   }
   if (name === "migration_completed" || name === "export_completed") {
-    const result = isRecord(payload.result) ? payload.result : {};
-    return { type: "terminal", taskId, result: { status: payload.success === false ? "failed" : "completed", message: string(result.message) ?? string(payload.message) ?? "", stats: stats(result.stats) } };
+    return { type: "terminal", taskId, result: terminalResult(payload, payload.success === false ? "failed" : "completed", "") };
   }
-  if (name === "migration_cancelled" || name === "export_cancelled") return { type: "terminal", taskId, result: { status: "cancelled", message: string(payload.message) ?? "Migration cancelled" } };
-  if (name === "migration_error" || name === "export_error") return { type: "terminal", taskId, result: { status: "failed", message: string(payload.error) ?? "Migration failed" } };
+  if (name === "migration_cancelled" || name === "export_cancelled") return { type: "terminal", taskId, result: terminalResult(payload, "cancelled", "Migration cancelled") };
+  if (name === "migration_error" || name === "export_error") return { type: "terminal", taskId, result: terminalResult(payload, "failed", "Migration failed") };
   return null;
 }
 

@@ -82,6 +82,7 @@ export interface PreflightResult {
 export interface ProgressStatistics {
   total_notes?: number;
   converted_notes?: number;
+  skipped_notes?: number;
   total_attachments?: number;
   exported_files?: string[];
   errors?: string[];

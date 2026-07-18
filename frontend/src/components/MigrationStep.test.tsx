@@ -7,6 +7,7 @@ import { initialWizardState, wizardReducer } from "../domain/wizardReducer";
 import { MigrationStep } from "./MigrationStep";
 
 let receiveEvent: ((event: MigrationEvent) => void) | undefined;
+let onTerminal = vi.fn();
 
 vi.mock("../api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api/client")>();
@@ -34,12 +35,16 @@ function Harness() {
     source: { ...initialWizardState.source, mode: "enex", input: { ...initialWizardState.source.input, enex_files: ["/export.enex"] } },
     target: { ...initialWizardState.target, output: { ...initialWizardState.target.output, obsidian_vault: "/vault" } },
   });
-  return <MigrationStep state={state} api={api} dispatch={dispatch} onTerminal={vi.fn()} />;
+  return <MigrationStep state={state} api={api} dispatch={dispatch} onTerminal={onTerminal} />;
 }
 
 describe("MigrationStep", () => {
   beforeEach(() => {
     receiveEvent = undefined;
+    onTerminal = vi.fn();
+    vi.clearAllMocks();
+    vi.mocked(api.start).mockResolvedValue({ success: true, task_id: "task-42", message: "Started" });
+    vi.mocked(api.status).mockResolvedValue({ taskId: "task-42", status: "running", progress: 0, message: "Started" });
     window.desktop = {
       getBackendUrl: vi.fn(), selectDirectory: vi.fn(), selectEnexFiles: vi.fn(), openPath: vi.fn(),
       setMigrationActive: vi.fn().mockResolvedValue(undefined), onCloseRequested: vi.fn(), confirmClose: vi.fn(),
@@ -54,5 +59,27 @@ describe("MigrationStep", () => {
 
     expect(await screen.findByText("42%")).toBeInTheDocument();
     expect(screen.getByText("正在转换笔记", { selector: "p" })).toBeInTheDocument();
+  });
+
+  test("reconciles a terminal status that completed before the task room was joined", async () => {
+    vi.mocked(api.status).mockResolvedValue({ taskId: "task-42", status: "completed", progress: 100, message: "迁移完成", stats: { total_notes: 2, converted_notes: 1, errors: ["/vault/failed.md"] } });
+    render(<Harness />);
+
+    await waitFor(() => expect(api.status).toHaveBeenCalledWith("task-42"));
+    await waitFor(() => expect(onTerminal).toHaveBeenCalledOnce());
+    expect(window.desktop.setMigrationActive).toHaveBeenNthCalledWith(1, true);
+    expect(window.desktop.setMigrationActive).toHaveBeenLastCalledWith(false);
+  });
+
+  test("clears desktop migration activity when unmounted during a pending start", async () => {
+    let resolveStart: (value: { success: boolean; task_id: string; message: string }) => void;
+    vi.mocked(api.start).mockImplementationOnce(() => new Promise((resolve) => { resolveStart = resolve; }));
+    const view = render(<Harness />);
+
+    await waitFor(() => expect(window.desktop.setMigrationActive).toHaveBeenCalledWith(true));
+    view.unmount();
+    resolveStart!({ success: true, task_id: "task-42", message: "Started" });
+
+    await waitFor(() => expect(window.desktop.setMigrationActive).toHaveBeenLastCalledWith(false));
   });
 });

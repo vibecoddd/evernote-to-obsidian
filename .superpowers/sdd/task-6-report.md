@@ -28,3 +28,23 @@
 
 - The backend only includes detailed statistics in terminal payloads today; progress events retain the latest known statistics until the terminal event supplies the final values.
 - Closing during the very short interval before the start endpoint returns a task ID leaves the window open with a clear instruction to wait, since there is not yet an API target to cancel.
+
+## Fixes
+
+- Fixed the Socket.IO start/join race in `frontend/src/components/MigrationStep.tsx`: after starting, the renderer immediately reconciles `/api/migration_status/<taskId>` and continues polling every 250 ms until a terminal state arrives. Socket listeners, the polling timer, and desktop active-task state are all cleaned up on terminal completion and unmount. `MigrationStep.test.tsx` covers a terminal result observed through reconciliation and teardown during a pending start.
+- Fixed production result data in `web_app.py`: handler statistics are copied into active task state and progress/terminal event payloads, and failed note/file paths are recorded rather than discarded. `frontend/src/api/client.ts` now normalizes additive stats and terminal result payloads for completed, failed, and cancelled events; `ProgressStatistics` includes `skipped_notes`. `test_backend_app.py` covers terminal statistics and per-note failed paths.
+- Fixed the start/close race in `frontend/src/App.tsx`: an accepted close request remains active while the start call is pending, cancels when the task ID appears, and can be withdrawn before cancellation begins. A close request is single-shot after confirmation so it cannot repeat cancellation before Electron exits.
+- Made the close confirmation dialog accessible in `frontend/src/App.tsx`: it has labelled/described modal semantics, focuses the non-destructive action initially, traps Tab within the dialog, supports Escape to continue migrating, and restores the prior focus on dismissal. `App.test.tsx` covers deferred cancellation, withdrawing a pending close request, initial focus, Escape, and focus restoration.
+
+### Fix verification
+
+- `npm run test:frontend -- frontend/src/components/MigrationStep.test.tsx frontend/src/App.test.tsx frontend/src/api/client.test.ts` — 3 files, 15 tests passed.
+- `.venv/bin/pytest -q test_backend_app.py -k 'migration_terminal_state or conversion_records'` — 2 passed, 9 deselected (one existing Eventlet deprecation warning).
+- `.venv/bin/pytest -q test_backend_app.py` — 11 passed (one existing Eventlet deprecation warning).
+- `npm run test:frontend` — 10 files, 35 tests passed.
+- `npm run typecheck` — passed.
+- `npm run build` — passed; renderer build completed and Electron TypeScript compilation completed.
+
+### Remaining concern
+
+- Status reconciliation is deliberately retained as a 250 ms fallback because the current start API allocates the task ID server-side; it guarantees observation of persisted terminal state if a fast Socket.IO event occurs before room membership, at the cost of short-lived polling while a migration is active.
