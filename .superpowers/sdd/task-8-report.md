@@ -1,0 +1,7 @@
+## Implementation
+
+- Deleted the retired PyWebView desktop entry point, packaging tests, build script, PyInstaller spec, and macOS-only build requirements: `macos_app.py`, `test_macos_app.py`, `test_macos_packaging.py`, `scripts/build_macos_app.py`, `packaging/macos/evernote_to_obsidian.spec`, and `requirements-macos-build.txt`.
+- Added `ELECTRON_CLIENT.md` and updated `README.md` and `MACOS_CLIENT.md` to document Electron development, macOS `.dmg` and Windows NSIS packaging, renderer/sidecar startup and shutdown, loopback health checks, resource diagnostics, Windows path behavior, Gatekeeper, signing, and notarization.
+- Removed PyWebView from normal requirements; `requirements-desktop-build.txt` continues to include normal requirements plus PyInstaller.
+- Updated Electron packaging documentation assertions and ran `.venv/bin/pytest -q test_electron_packaging.py test_web_environment.py test_web_integration.py` (7 passed, 1 skipped), `npm run typecheck`, and `npm run build` (38 frontend tests passed).
+- Concerns: the local Node runtime is v21.7.3 while the project declares Node >=22.12.0. npm installation and the requested typecheck/build completed, but emitted engine warnings; release builds should use the declared Node version. npm also reported two dependency-audit vulnerabilities that are outside Task 8 scope. One concurrent full frontend-suite run had an existing focus assertion failure in `frontend/src/App.test.tsx`; the isolated test then passed three consecutive runs, and Task 8 does not modify that UI code.

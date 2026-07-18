@@ -109,3 +109,17 @@ def test_package_manifest_exposes_platform_packaging_commands():
 
     for command in ("package:mac", "package:win", "package:current"):
         assert "scripts/build_electron_app.py" in package["scripts"][command]
+
+
+def test_readme_documents_electron_platform_packaging_commands():
+    readme = read_project_file("README.md")
+
+    for command in ("npm install", "npm run package:mac", "npm run package:win"):
+        assert command in readme
+
+
+def test_electron_client_documentation_covers_sidecar_and_platforms():
+    documentation = read_project_file("ELECTRON_CLIENT.md")
+
+    for topic in ("loopback", "Python sidecar", "macOS", "Windows"):
+        assert topic in documentation

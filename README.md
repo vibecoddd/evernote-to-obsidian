@@ -50,31 +50,23 @@ pip install -r requirements.txt
 python3 migrate.py
 ```
 
-### 🍎 macOS 客户端模式
+### 🖥️ Electron 桌面客户端
 
-macOS 用户可以使用可双击打开的桌面客户端，不需要手动启动 Web 服务：
-
-```bash
-# 在 macOS 上构建应用
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-macos-build.txt
-.venv/bin/python scripts/build_macos_app.py
-open "dist/印象笔记迁移工具.app"
-```
-
-客户端复用现有迁移页面和 Python 逻辑，运行时只监听本机 `127.0.0.1`。完整的构建、签名和故障排除说明见 [MACOS_CLIENT.md](MACOS_CLIENT.md)。
-
-### Electron 安装包构建
-
-Electron 的主进程编译产物位于 `dist-electron/`，而安装包输出到 `release/`，以免构建器将先前生成的安装包重新作为应用输入。构建当前平台安装包：
+桌面客户端使用 Electron、React/Vite 和本地 Python 服务；双击安装后的应用即可使用，无需手动启动浏览器或 Flask。开发或构建前安装 Node 依赖和 Python 桌面构建依赖：
 
 ```bash
-npm ci
+npm install
 python3 -m pip install -r requirements-desktop-build.txt
-npm run package:current
 ```
 
-使用 `npm run package:mac` 或 `npm run package:win` 选择对应的安装包目标。
+构建 macOS `.dmg` 或 Windows NSIS 安装包：
+
+```bash
+npm run package:mac
+npm run package:win
+```
+
+安装包输出到 `release/`。完整的开发、构建、签名和故障排除说明见 [ELECTRON_CLIENT.md](ELECTRON_CLIENT.md)。[MACOS_CLIENT.md](MACOS_CLIENT.md) 提供 macOS 专用的快速参考。
 
 无论使用哪种方式，工具都会自动：
 1. 🔐 引导您输入印象笔记账号
