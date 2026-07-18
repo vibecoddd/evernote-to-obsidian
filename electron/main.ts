@@ -55,51 +55,72 @@ export async function waitForBackend(
   const deadline = now() + timeoutMs;
   let lastFailure: unknown = new Error("No health response received");
 
-  do {
+  while (true) {
+    const remainingMs = deadline - now();
+    if (remainingMs <= 0) break;
+
+    const controller = new AbortController();
+    const requestTimeoutMs = Math.max(1, Math.ceil(remainingMs));
+    let requestTimeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const response = await fetchImpl(healthUrl);
+      const timeout = new Promise<never>((_resolve, reject) => {
+        requestTimeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Health request timed out after ${requestTimeoutMs}ms`));
+        }, requestTimeoutMs);
+      });
+      const response = await Promise.race([
+        Promise.resolve().then(() => fetchImpl(healthUrl, { signal: controller.signal })),
+        timeout,
+      ]);
       if (response.ok) {
         return;
       }
       lastFailure = new Error(`HTTP ${response.status}`);
     } catch (error) {
       lastFailure = error;
+    } finally {
+      if (requestTimeout !== undefined) clearTimeout(requestTimeout);
     }
 
-    const remainingMs = deadline - now();
-    if (remainingMs <= 0) {
-      break;
-    }
-    await sleep(Math.min(intervalMs, remainingMs));
-  } while (now() <= deadline);
+    const sleepMs = deadline - now();
+    if (sleepMs <= 0) break;
+    await sleep(Math.min(intervalMs, sleepMs));
+  }
 
   const detail = lastFailure instanceof Error ? lastFailure.message : String(lastFailure);
   throw new Error(`Backend health check timed out for ${healthUrl}: ${detail}`);
 }
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+function waitForChildExit(
+  child: BackendHandle["process"],
+  timeoutMs: number,
+): Promise<boolean> {
+  if (child.exitCode !== null) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    let complete = false;
+    const finish = (exited: boolean) => {
+      if (complete) return;
+      complete = true;
+      clearTimeout(timeout);
+      resolve(exited);
+    };
+    const timeout = setTimeout(() => finish(child.exitCode !== null), timeoutMs);
+    child.once("exit", () => finish(true));
+  });
 }
 
 async function stopChildProcess(
   child: BackendHandle["process"],
   timeoutMs: number,
 ): Promise<void> {
-  if (child.exitCode !== null || child.killed) {
-    return;
-  }
+  if (child.exitCode !== null) return;
 
-  const exited = new Promise<void>((resolve) => {
-    const childWithEvents = child as BackendHandle["process"] & {
-      once?: (event: "exit", listener: () => void) => void;
-    };
-    childWithEvents.once?.("exit", resolve);
-  });
+  if (!child.killed) child.kill("SIGTERM");
+  const exited = await waitForChildExit(child, timeoutMs);
 
-  child.kill("SIGTERM");
-  await Promise.race([exited, delay(timeoutMs)]);
-
-  if (child.exitCode === null && !child.killed) {
+  if (!exited && child.exitCode === null) {
     child.kill("SIGKILL");
   }
 }
@@ -228,14 +249,9 @@ export function createDesktopLifecycle(
     shutdown = (async () => {
       if (!backend) return;
       const handle = backend;
-      let stopped = false;
-      await Promise.race([
-        handle.stop().then(() => {
-          stopped = true;
-        }),
-        delay(dependencies.stopTimeoutMs),
-      ]).catch(() => undefined);
-      if (!stopped && handle.process.exitCode === null && !handle.process.killed) {
+      const exited = waitForChildExit(handle.process, dependencies.stopTimeoutMs);
+      await Promise.race([handle.stop().catch(() => undefined), exited]);
+      if (!(await exited) && handle.process.exitCode === null) {
         handle.process.kill("SIGKILL");
       }
     })();

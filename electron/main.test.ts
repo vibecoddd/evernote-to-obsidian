@@ -15,6 +15,7 @@ vi.mock("electron", () => electron);
 import {
   createDesktopLifecycle,
   reserveLoopbackPort,
+  startBackend,
   waitForBackend,
 } from "./main";
 
@@ -38,6 +39,7 @@ describe("waitForBackend", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(fetchImpl).toHaveBeenLastCalledWith(
       "http://127.0.0.1:43123/api/healthz",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 
@@ -56,6 +58,26 @@ describe("waitForBackend", () => {
 
     await rejection;
   });
+
+  it("times out and aborts a health request that never settles", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      () => new Promise<Response>(() => undefined),
+    );
+
+    await expect(
+      waitForBackend("http://127.0.0.1:43123", {
+        fetchImpl,
+        timeoutMs: 10,
+      }),
+    ).rejects.toThrow(
+      "Backend health check timed out for http://127.0.0.1:43123/api/healthz: Health request timed out after 10ms",
+    );
+
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      signal: expect.any(AbortSignal),
+    });
+  }, 200);
 });
 
 describe("reserveLoopbackPort", () => {
@@ -64,6 +86,38 @@ describe("reserveLoopbackPort", () => {
 
     expect(port).toBeGreaterThan(0);
     expect(port).toBeLessThanOrEqual(65535);
+  });
+});
+
+describe("backend shutdown", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("force kills a child that remains alive after SIGTERM marks it killed", async () => {
+    vi.useFakeTimers();
+    const child = {
+      exitCode: null as number | null,
+      killed: false,
+      kill: vi.fn((_signal: NodeJS.Signals) => {
+        child.killed = true;
+        return true;
+      }),
+      once: vi.fn(),
+    };
+    const backend = await startBackend({
+      reservePort: vi.fn().mockResolvedValue(43123),
+      spawnImpl: vi.fn().mockReturnValue(child),
+      stopTimeoutMs: 5,
+    });
+
+    const stopping = backend.stop();
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+
+    await vi.advanceTimersByTimeAsync(5);
+    await stopping;
+
+    expect(child.kill).toHaveBeenLastCalledWith("SIGKILL");
   });
 });
 
@@ -152,5 +206,60 @@ describe("desktop lifecycle", () => {
 
     expect(window.loadFile).toHaveBeenCalledWith("/app/dist/renderer/index.html");
     expect(events).toEqual(["stop", "quit"]);
+  });
+
+  it("force kills a still-alive child when its stop method resolves prematurely", async () => {
+    vi.useFakeTimers();
+    const beforeQuitHandlers: Array<(event: { preventDefault: () => void }) => void> = [];
+    const child = {
+      exitCode: null as number | null,
+      killed: false,
+      kill: vi.fn((_signal: NodeJS.Signals) => {
+        child.killed = true;
+        return true;
+      }),
+      once: vi.fn(),
+    };
+    const window = {
+      isDestroyed: vi.fn().mockReturnValue(false),
+      isMinimized: vi.fn().mockReturnValue(false),
+      restore: vi.fn(),
+      focus: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
+      loadFile: vi.fn().mockResolvedValue(undefined),
+      webContents: { on: vi.fn(), send: vi.fn() },
+    };
+    const app = {
+      requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+      whenReady: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn((event: string, listener: (event: { preventDefault: () => void }) => void) => {
+        if (event === "before-quit") beforeQuitHandlers.push(listener);
+      }),
+      quit: vi.fn(),
+    };
+    const lifecycle = createDesktopLifecycle({
+      app,
+      BrowserWindow: vi.fn(() => window),
+      dialog: { showOpenDialog: vi.fn() },
+      ipcMain: { handle: vi.fn() },
+      shell: { openPath: vi.fn() },
+      startBackend: vi.fn().mockResolvedValue({
+        url: "http://127.0.0.1:43123",
+        process: child,
+        stop: vi.fn(async () => {
+          child.kill("SIGTERM");
+        }),
+      }),
+      stopTimeoutMs: 5,
+      waitForBackend: vi.fn().mockResolvedValue(undefined),
+      rendererPath: "/app/dist/renderer/index.html",
+    });
+
+    await lifecycle.start();
+    beforeQuitHandlers[0]({ preventDefault: vi.fn() });
+    await vi.advanceTimersByTimeAsync(5);
+
+    expect(child.kill).toHaveBeenLastCalledWith("SIGKILL");
   });
 });

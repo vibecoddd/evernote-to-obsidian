@@ -2,7 +2,7 @@ import type { ChildProcess, SpawnOptions } from "node:child_process";
 
 export interface BackendHandle {
   url: string;
-  process: Pick<ChildProcess, "kill" | "killed" | "exitCode">;
+  process: Pick<ChildProcess, "kill" | "killed" | "exitCode" | "once">;
   stop: () => Promise<void>;
 }
 
