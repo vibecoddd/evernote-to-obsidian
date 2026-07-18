@@ -16,3 +16,8 @@
 - Strengthened `test_electron_packaging.py` to require the Task 8 documentation contract: npm install and platform packaging commands, dynamic loopback startup, health timeout, sidecar shutdown, macOS `.dmg`, Windows NSIS and path handling, missing-resource diagnostics, signing/notarization, and no PyWebView requirement.
 - Verification: `.venv/bin/pytest -q test_electron_packaging.py test_web_environment.py test_web_integration.py` (7 passed, 1 skipped); `npm run typecheck` passed; `npm run build` passed with 38 frontend tests; `git diff --check` passed. The tracked-file reference scan found only the historical deletion record in this report.
 - Concerns: the existing Node-version and dependency-audit concerns above still apply. The npm build also emitted Vite's CJS Node API deprecation warning.
+
+## Fixes
+
+- Made the Electron clean-checkout runtime prerequisite explicit in `ELECTRON_CLIENT.md` and the README: Node.js >=22.12.0 is required before `npm install`, `npm run build`, or Electron launch. The guides now state that npm engine warnings do not enforce this floor and that release packaging must use Node 22.12+.
+- Added deterministic packaging-documentation assertions for the declared Node engine, required runtime wording, the non-enforcing npm warning caveat, and the release-packaging floor. Kept the existing `package.json` engine declaration and did not add a platform-specific preinstall hook or version-manager file.

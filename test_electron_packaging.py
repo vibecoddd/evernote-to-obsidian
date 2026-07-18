@@ -115,6 +115,10 @@ def test_manifest_and_docs_define_a_clean_checkout_electron_launch_flow():
     package = json.loads(read_project_file("package.json"))
     documentation = read_project_file("ELECTRON_CLIENT.md")
 
+    assert package["engines"]["node"] == ">=22.12.0"
+    assert "Node.js >=22.12.0" in documentation
+    assert "npm 的 engine 警告不足以" in documentation
+    assert "发布打包必须使用 Node 22.12+" in documentation
     assert package["main"] == "dist-electron/main.js"
     assert package["scripts"]["build:renderer"] == "vite build --config vite.config.ts"
     assert package["scripts"]["build:electron"] == "tsc -p tsconfig.electron.json"
@@ -127,6 +131,8 @@ def test_manifest_and_docs_define_a_clean_checkout_electron_launch_flow():
 def test_readme_documents_electron_platform_packaging_commands():
     readme = read_project_file("README.md")
 
+    assert "Node.js >=22.12.0" in readme
+    assert "发布打包必须使用 Node 22.12+" in readme
     for command in ("npm install", "npm run package:mac", "npm run package:win"):
         assert command in readme
 
