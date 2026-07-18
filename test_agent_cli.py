@@ -76,7 +76,7 @@ class AgentCliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(payload["success"])
         self.assertGreaterEqual(payload["stats"]["converted_notes"], 1)
-        self.assertEqual(len(list(self.vault.rglob("*.md"))), 1)
+        self.assertEqual(len(list(self.vault.rglob("测试笔记.md"))), 1)
 
     def test_command_line_paths_override_yaml_config(self):
         config = self.temp_dir / "config.yaml"
@@ -111,6 +111,19 @@ class AgentCliTests(unittest.TestCase):
 
         self.assertIn('name = "evernote-to-obsidian"', text)
         self.assertIn('evernote-to-obsidian = "agent_cli:main"', text)
+
+    def test_converter_accepts_prepared_config(self):
+        from config import Config
+        from evernote2obsidian import EvernoteToObsidianConverter
+
+        config = Config()
+        config.set("input.enex_files", [str(self.enex)])
+        config.set("output.obsidian_vault", str(self.vault))
+        config.set("logging.file", str(self.temp_dir / "converter.log"))
+
+        converter = EvernoteToObsidianConverter(config=config)
+
+        self.assertIs(converter.config, config)
 
 
 if __name__ == "__main__":

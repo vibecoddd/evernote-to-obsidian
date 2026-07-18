@@ -27,18 +27,23 @@ from sync_manager import SyncManager
 class EvernoteToObsidianConverter:
     """印象笔记到Obsidian转换器主类"""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None,
+                 config: Optional[Config] = None):
         """
         初始化转换器
 
         Args:
             config_path: 配置文件路径
+            config: 已构造的配置对象；与config_path二选一
         """
         # 初始化colorama（用于彩色输出）
         colorama.init(autoreset=True)
 
         # 加载配置
-        self.config = Config(config_path)
+        if config is not None and config_path is not None:
+            raise ValueError("config_path and config cannot be used together")
+
+        self.config = config if config is not None else Config(config_path)
         if not self.config.validate():
             raise ValueError("Configuration validation failed")
 
@@ -407,8 +412,7 @@ def main(config, input, output, preview, reset, verbose):
             converter_config.set('logging.level', 'DEBUG')
 
         # 创建转换器
-        converter = EvernoteToObsidianConverter()
-        converter.config = converter_config
+        converter = EvernoteToObsidianConverter(config=converter_config)
 
         # 重置同步状态
         if reset:
