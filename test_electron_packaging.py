@@ -111,6 +111,19 @@ def test_package_manifest_exposes_platform_packaging_commands():
         assert "scripts/build_electron_app.py" in package["scripts"][command]
 
 
+def test_manifest_and_docs_define_a_clean_checkout_electron_launch_flow():
+    package = json.loads(read_project_file("package.json"))
+    documentation = read_project_file("ELECTRON_CLIENT.md")
+
+    assert package["main"] == "dist-electron/main.js"
+    assert package["scripts"]["build:renderer"] == "vite build --config vite.config.ts"
+    assert package["scripts"]["build:electron"] == "tsc -p tsconfig.electron.json"
+    assert "npm run build:renderer && npm run build:electron" in documentation
+    assert "npx electron ." in documentation
+    assert "仓库根目录" in documentation
+    assert "`npm run dev:renderer` 只启动 Vite renderer 开发服务器" in documentation
+
+
 def test_readme_documents_electron_platform_packaging_commands():
     readme = read_project_file("README.md")
 

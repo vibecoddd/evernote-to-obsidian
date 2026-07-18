@@ -8,6 +8,9 @@
 
 ## Fixes
 
+- Corrected the clean-checkout Electron development flow: install dependencies from the repository root, run `npm run build:renderer && npm run build:electron`, then launch with `npx electron .` from that same directory. The guide now states that `dev:renderer` only starts Vite and cannot provide Electron HMR until the main process explicitly loads its URL.
+- Strengthened the packaging contract test to verify the manifest's build outputs and the documentation's exact build-before-launch and repository-root sidecar requirements.
+
 - Reclassified the legacy macOS plan and design as historical context and directed all current implementation, packaging, and troubleshooting guidance to the Electron plan, design, and `ELECTRON_CLIENT.md` commands.
 - Updated the Electron plan's completed-retirement wording so it no longer instructs readers to act on deleted PyWebView files, and stated explicitly in the Electron guide that desktop users do not need PyWebView.
 - Strengthened `test_electron_packaging.py` to require the Task 8 documentation contract: npm install and platform packaging commands, dynamic loopback startup, health timeout, sidecar shutdown, macOS `.dmg`, Windows NSIS and path handling, missing-resource diagnostics, signing/notarization, and no PyWebView requirement.

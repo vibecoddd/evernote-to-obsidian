@@ -4,21 +4,24 @@
 
 ## 本地开发
 
-安装 Node 依赖和 Python 依赖：
+从仓库根目录安装 Node 依赖和 Python 依赖：
 
 ```bash
+cd /path/to/evernote-to-obsidian
 npm install
 python3 -m pip install -r requirements.txt
 ```
 
-在一个终端启动 Vite renderer，在另一个终端启动 Electron：
+从干净 checkout 启动桌面客户端时，先构建 renderer 和 Electron 主进程，再从同一仓库根目录启动 Electron：
 
 ```bash
-npm run dev:renderer
+npm run build:renderer && npm run build:electron
 npx electron .
 ```
 
-开发模式下 Electron 会使用 `PYTHON` 环境变量指定的 Python；未设置时使用 `python3`，并运行 `backend_app.py`。构建和打包还需要 PyInstaller：
+`package.json` 的 Electron 入口是构建产物 `dist-electron/main.js`；主进程会加载构建产物 `dist/renderer/index.html`。因此 `npm run dev:renderer` 只启动 Vite renderer 开发服务器，不能单独用于启动此桌面客户端；Electron 尚未实现加载 Vite URL 的 HMR 工作流。
+
+开发模式下 Electron 会使用 `PYTHON` 环境变量指定的 Python；未设置时使用 `python3`，并从启动 Electron 的仓库根目录运行 `backend_app.py`。请不要在其他目录执行 `npx electron .`，否则 sidecar 找不到该入口及其 Web 运行时资源。构建和打包还需要 PyInstaller：
 
 ```bash
 python3 -m pip install -r requirements-desktop-build.txt
