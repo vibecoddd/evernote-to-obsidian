@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 
@@ -135,6 +136,36 @@ def test_readme_documents_electron_platform_packaging_commands():
     assert "发布打包必须使用 Node 22.12+" in readme
     for command in ("npm install", "npm run package:mac", "npm run package:win"):
         assert command in readme
+
+
+def test_all_current_electron_packaging_entry_points_require_supported_node_first():
+    prerequisite = "Node.js >=22.12.0"
+    npm_warning_caveat = "npm 的 engine 警告不足以"
+
+    for relative_path, command in (
+        ("README.md", "npm install"),
+        ("README.md", "npm run package:mac"),
+        ("ELECTRON_CLIENT.md", "npm install"),
+        ("ELECTRON_CLIENT.md", "npm run package:mac"),
+        ("MACOS_CLIENT.md", "npm install"),
+        ("docs/superpowers/plans/2026-07-18-macos-client.md", "npm install"),
+        ("docs/superpowers/specs/2026-07-18-macos-client-design.md", "npm install"),
+    ):
+        documentation = read_project_file(relative_path)
+        command_block = next(
+            (
+                block
+                for block in re.finditer(r"```bash\n(.*?)\n```", documentation, flags=re.DOTALL)
+                if command in block.group(1)
+            ),
+            None,
+        )
+
+        assert command_block is not None, relative_path
+        prerequisite_offset = command_block.start()
+
+        assert prerequisite in documentation[:prerequisite_offset], relative_path
+        assert npm_warning_caveat in documentation[:prerequisite_offset], relative_path
 
 
 def test_electron_client_documentation_covers_task_eight_packaging_contract():

@@ -21,3 +21,8 @@
 
 - Made the Electron clean-checkout runtime prerequisite explicit in `ELECTRON_CLIENT.md` and the README: Node.js >=22.12.0 is required before `npm install`, `npm run build`, or Electron launch. The guides now state that npm engine warnings do not enforce this floor and that release packaging must use Node 22.12+.
 - Added deterministic packaging-documentation assertions for the declared Node engine, required runtime wording, the non-enforcing npm warning caveat, and the release-packaging floor. Kept the existing `package.json` engine declaration and did not add a platform-specific preinstall hook or version-manager file.
+
+## Fixes
+
+- Added the prominent Node.js >=22.12.0 prerequisite and npm engine-warning caveat before the Electron/macOS install and packaging command blocks in `MACOS_CLIENT.md` and the retained historical macOS plan and design. These legacy documents now identify `ELECTRON_CLIENT.md` as the canonical current workflow.
+- Extended `test_electron_packaging.py` so every maintained Electron/macOS documentation entry point must state that prerequisite and caveat before its actionable command block.

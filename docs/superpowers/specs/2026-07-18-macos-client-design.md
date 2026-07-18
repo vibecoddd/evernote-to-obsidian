@@ -8,7 +8,11 @@
 
 - 当前设计：[Electron 跨平台客户端设计](2026-07-18-electron-desktop-client-design.md)
 - 当前计划：[Electron 跨平台客户端计划](../plans/2026-07-18-electron-desktop-client.md)
-- 当前操作指南：[Electron 客户端指南](../../../ELECTRON_CLIENT.md)
+- 当前操作指南（规范来源）：[Electron 客户端指南](../../../ELECTRON_CLIENT.md)
+
+以下命令仅为指向当前 Electron 工作流的快速参考；完整、规范的开发、打包和故障排除说明以 `ELECTRON_CLIENT.md` 为准。
+
+> **前提：** 在运行下列 `npm install` 或 macOS 打包命令前，必须先安装并使用 **Node.js >=22.12.0**。npm 的 engine 警告不足以阻止不受支持的 Node 版本继续安装或构建，因此不能把警告当作兼容性检查；发布打包必须使用 Node 22.12+。
 
 ```bash
 npm install
