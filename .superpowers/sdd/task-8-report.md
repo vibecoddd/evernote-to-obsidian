@@ -31,3 +31,7 @@
 
 - Added a Node.js >=22.12.0 prerequisite, npm engine-warning caveat, and `ELECTRON_CLIENT.md` canonical-guidance link to the active Electron implementation plan and design. The plan places the prerequisite before every actionable npm command; the design keeps its architectural content while directing operational commands to the canonical guide.
 - Extended `test_electron_packaging.py` to enforce that both active Electron documents contain the prerequisite, caveat, and canonical-guidance link, and that any actionable npm command follows the prerequisite.
+
+## Fixes
+
+- Corrected the active Electron documentation assertion to use real word boundaries when matching npm commands and to verify the Node.js >=22.12.0 prerequisite plus npm engine-warning caveat before every actionable command in the active plan and design documents.

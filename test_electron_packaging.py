@@ -183,11 +183,12 @@ def test_active_electron_plan_and_design_document_node_prerequisite():
         assert npm_warning_caveat in documentation, relative_path
         assert canonical_guidance in documentation, relative_path
 
-        first_npm_command = re.search(
-            r"npm (?:install|run|exec|test|ci)\\b", documentation
+        npm_commands = list(
+            re.finditer(r"\bnpm (?:install|run|exec|test|ci)\b", documentation)
         )
-        if first_npm_command is not None:
-            command_offset = first_npm_command.start()
+
+        for npm_command in npm_commands:
+            command_offset = npm_command.start()
             assert prerequisite in documentation[:command_offset], relative_path
             assert npm_warning_caveat in documentation[:command_offset], relative_path
 
