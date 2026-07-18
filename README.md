@@ -50,6 +50,20 @@ pip install -r requirements.txt
 python3 migrate.py
 ```
 
+### 🍎 macOS 客户端模式
+
+macOS 用户可以使用可双击打开的桌面客户端，不需要手动启动 Web 服务：
+
+```bash
+# 在 macOS 上构建应用
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-macos-build.txt
+.venv/bin/python scripts/build_macos_app.py
+open "dist/印象笔记迁移工具.app"
+```
+
+客户端复用现有迁移页面和 Python 逻辑，运行时只监听本机 `127.0.0.1`。完整的构建、签名和故障排除说明见 [MACOS_CLIENT.md](MACOS_CLIENT.md)。
+
 无论使用哪种方式，工具都会自动：
 1. 🔐 引导您输入印象笔记账号
 2. 📤 自动导出所有笔记为ENEX格式文件
