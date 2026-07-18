@@ -45,3 +45,7 @@
 ## Fixes
 
 - Tightened the exhaustive documentation matcher to recognize only supported executable npm forms: `install`, `ci`, `test` with flags, `run <script>`, and `exec <package>`. It now rejects unsupported direct `npm build` and `npm package:*` forms, a bare `npm exec`, and generic npm prose while preserving the per-document Node.js >=22.12.0 and npm engine-warning ordering checks.
+
+## Fixes
+
+- Required whitespace or end-of-input boundaries for matched npm command and script tokens, preventing `npm test:frontend`, `npm run build:renderer!`, `npm install:all`, and `npm ci:clean` from being treated as supported commands. The `npm exec` matcher now also requires a non-flag package token, so `npm exec -- --mac` is rejected while `npm exec electron-builder -- --mac` remains supported. Added explicit negative regression cases and retained the exhaustive prerequisite-order assertions across every Electron/macOS documentation entry point.

@@ -28,10 +28,10 @@ ELECTRON_NPM_COMMAND_ENTRY_POINTS = (
 # mentions of "npm" or unsupported command-like prose.
 NPM_COMMAND_PATTERN = re.compile(
     r"\bnpm[ \t]+(?:"
-    r"(?:install|ci)\b"
-    r"|test\b(?:[ \t]+(?:--[^\s`]*|-[^\s`]+))*"
-    r"|exec[ \t]+[^\s`]+"
-    r"|run[ \t]+[A-Za-z0-9][A-Za-z0-9:._-]*"
+    r"(?:install|ci)(?=$|\s)"
+    r"|test(?=$|\s)(?:[ \t]+(?:--[^\s`]*|-[^\s`]+))*(?=$|\s)"
+    r"|exec[ \t]+(?!-)[^\s`]+(?=$|\s)"
+    r"|run[ \t]+[A-Za-z0-9][A-Za-z0-9:._-]*(?=$|\s)"
     r")"
 )
 
@@ -78,6 +78,18 @@ def test_documented_npm_commands_only_matches_supported_executable_forms():
         "npm run dev:renderer",
         "npm exec electron-builder",
     ]
+
+
+def test_documented_npm_commands_rejects_incomplete_or_nonterminal_forms():
+    for command in (
+        "npm exec -- --mac",
+        "npm test:frontend",
+        "npm run",
+        "npm run build:renderer!",
+        "npm install:all",
+        "npm ci:clean",
+    ):
+        assert documented_npm_commands(command) == [], command
 
 
 def test_pyinstaller_spec_builds_the_backend_entry_with_runtime_assets():
