@@ -8,12 +8,13 @@ import sys
 from pathlib import Path
 import tempfile
 import json
+import pytest
 
 # 添加src目录到Python路径
 src_dir = Path(__file__).parent / 'src'
 sys.path.insert(0, str(src_dir))
 
-def test_web_integration():
+def run_web_integration():
     """测试完整的Web迁移流程"""
     print("🌐 测试Web界面完整迁移流程")
     print("=" * 60)
@@ -99,11 +100,15 @@ def test_web_integration():
         traceback.print_exc()
         return False
 
+
+def test_web_integration():
+    pytest.skip("requires a real Evernote account and network access; run this module directly")
+
 def main():
     """主函数"""
     print("🧪 Web集成测试")
 
-    success = test_web_integration()
+    success = run_web_integration()
 
     if success:
         print("\n🎉 Web集成测试成功!")

@@ -145,6 +145,7 @@ class WebMigrator:
                 task_id = str(uuid.uuid4())
                 session['task_id'] = task_id
                 print(f"生成任务ID: {task_id}")
+                self.cancel_events[task_id] = threading.Event()
 
                 # 获取导出目录并处理
                 export_dir = config_data.get('output', {}).get('enex_directory', '/tmp/evernote_export')
@@ -440,6 +441,7 @@ class WebMigrator:
         """在后台运行导出ENEX任务"""
         try:
             print(f"🚀 开始导出ENEX任务 {task_id}")
+            cancel_event = self.cancel_events.setdefault(task_id, threading.Event())
 
             # 初始化任务状态
             self.active_migrations[task_id] = {
@@ -455,6 +457,10 @@ class WebMigrator:
             }
 
             print(f"📊 初始化任务状态: {self.active_migrations[task_id]}")
+
+            if cancel_event.is_set():
+                self._cancel_export_task(task_id)
+                return
 
             # 发送初始进度更新
             self.socketio.emit('export_progress', {
@@ -475,6 +481,10 @@ class WebMigrator:
             
             # 创建导出器
             exporter = EvernoteExporter(config.get_all())
+
+            if cancel_event.is_set():
+                self._cancel_export_task(task_id)
+                return
             
             # 检查依赖
             if not exporter.check_dependencies():
@@ -486,6 +496,10 @@ class WebMigrator:
                     'task_id': task_id,
                     'error': '依赖检查失败'
                 }, room=task_id)
+                return
+
+            if cancel_event.is_set():
+                self._cancel_export_task(task_id)
                 return
             
             # 发送进度更新
@@ -501,8 +515,16 @@ class WebMigrator:
                 'progress': 50,
                 'message': '正在导出笔记数据...'
             }, room=task_id)
+
+            if cancel_event.is_set():
+                self._cancel_export_task(task_id)
+                return
             
             enex_files = exporter.export_notes()
+
+            if cancel_event.is_set():
+                self._cancel_export_task(task_id)
+                return
             
             if not enex_files:
                 self.active_migrations[task_id].update({
@@ -521,6 +543,10 @@ class WebMigrator:
                 'progress': 80,
                 'message': f'正在保存ENEX文件...'
             }, room=task_id)
+
+            if cancel_event.is_set():
+                self._cancel_export_task(task_id)
+                return
             
             # 更新任务状态
             self.active_migrations[task_id].update({
@@ -557,6 +583,15 @@ class WebMigrator:
                 'task_id': task_id,
                 'error': str(e)
             }, room=task_id)
+
+    def _cancel_export_task(self, task_id: str):
+        """记录导出取消，不清理已经写入的 ENEX 文件。"""
+        self.active_migrations[task_id].update({
+            'status': 'cancelled',
+            'end_time': datetime.now().isoformat(),
+            'message': '导出已取消，已写入的文件不会回滚'
+        })
+        self.socketio.emit('export_cancelled', {'task_id': task_id}, room=task_id)
 
     def run(self, host='127.0.0.1', port=5000, debug=False,
             allow_unsafe_werkzeug=False):

@@ -1,3 +1,15 @@
+import threading
+
+
+def test_default_web_routes_remain_available():
+    from web_app import WebMigrator
+
+    client = WebMigrator().app.test_client()
+
+    for route in ("/", "/config", "/migrate", "/results"):
+        assert client.get(route).status_code == 200
+
+
 def test_healthz_returns_status():
     from web_app import WebMigrator
 
@@ -51,7 +63,7 @@ def test_cancel_endpoint_sets_known_task_event_and_rejects_unknown_task():
 
     migrator = WebMigrator()
     migrator.active_migrations["known"] = {"status": "running"}
-    migrator.cancel_events["known"] = __import__("threading").Event()
+    migrator.cancel_events["known"] = threading.Event()
     client = migrator.app.test_client()
 
     cancelling = client.post("/api/cancel_migration/known")
@@ -72,10 +84,94 @@ def test_cancelled_task_emits_cancelled_event_before_major_steps():
     emitted = []
     migrator.socketio.emit = lambda name, data, room: emitted.append((name, data, room))
     task_id = "cancelled-task"
-    migrator.cancel_events[task_id] = __import__("threading").Event()
+    migrator.cancel_events[task_id] = threading.Event()
     migrator.cancel_events[task_id].set()
 
     migrator._run_migration_task(task_id, Config())
 
     assert migrator.active_migrations[task_id]["status"] == "cancelled"
     assert ("migration_cancelled", {"task_id": task_id}, task_id) in emitted
+
+
+def test_start_export_registers_cancellation_event(monkeypatch, tmp_path):
+    import web_app
+    from web_app import WebMigrator
+
+    class NoopThread:
+        def __init__(self, **kwargs):
+            pass
+
+        daemon = False
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(web_app.threading, "Thread", NoopThread)
+    monkeypatch.setattr(web_app.uuid, "uuid4", lambda: "export-task")
+    migrator = WebMigrator()
+
+    response = migrator.app.test_client().post("/api/start_export", json={
+        "output": {"enex_directory": str(tmp_path)},
+    })
+
+    assert response.status_code == 200
+    assert migrator.cancel_events["export-task"].is_set() is False
+
+
+def test_export_task_stops_before_export_when_already_cancelled(monkeypatch):
+    from config import Config
+    from web_app import WebMigrator
+
+    class Exporter:
+        def __init__(self, config):
+            pass
+
+        def check_dependencies(self):
+            raise AssertionError("cancelled task must not check dependencies")
+
+    monkeypatch.setattr("evernote_exporter.EvernoteExporter", Exporter)
+    migrator = WebMigrator()
+    emitted = []
+    migrator.socketio.emit = lambda name, data, room: emitted.append((name, data, room))
+    task_id = "cancelled-export"
+    migrator.cancel_events[task_id] = threading.Event()
+    migrator.cancel_events[task_id].set()
+
+    migrator._run_export_task(task_id, Config())
+
+    assert migrator.active_migrations[task_id]["status"] == "cancelled"
+    assert ("export_cancelled", {"task_id": task_id}, task_id) in emitted
+
+
+def test_export_task_preserves_created_files_when_cancelled_after_export(monkeypatch, tmp_path):
+    from config import Config
+    from web_app import WebMigrator
+
+    output = tmp_path / "notes.enex"
+    migrator = WebMigrator()
+    task_id = "post-export-cancel"
+    cancel_event = threading.Event()
+    migrator.cancel_events[task_id] = cancel_event
+    emitted = []
+    migrator.socketio.emit = lambda name, data, room: emitted.append((name, data, room))
+
+    class Exporter:
+        def __init__(self, config):
+            pass
+
+        def check_dependencies(self):
+            return True
+
+        def export_notes(self):
+            output.write_text("already exported", encoding="utf-8")
+            cancel_event.set()
+            return [str(output)]
+
+    monkeypatch.setattr("evernote_exporter.EvernoteExporter", Exporter)
+
+    migrator._run_export_task(task_id, Config())
+
+    assert output.read_text(encoding="utf-8") == "already exported"
+    assert migrator.active_migrations[task_id]["status"] == "cancelled"
+    assert ("export_completed",) not in [(name,) for name, _, _ in emitted]
+    assert ("export_cancelled", {"task_id": task_id}, task_id) in emitted
