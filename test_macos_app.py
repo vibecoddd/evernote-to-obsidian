@@ -76,3 +76,51 @@ def test_wait_for_server_raises_startup_error_after_deadline():
         assert "127.0.0.1:43123" in str(error)
     else:
         raise AssertionError("wait_for_server should time out")
+
+
+class FakeMigrator:
+    def __init__(self):
+        self.run_calls = []
+
+    def run(self, **kwargs):
+        self.run_calls.append(kwargs)
+
+
+class FakeWebView:
+    def __init__(self):
+        self.window_calls = []
+        self.start_calls = 0
+
+    def create_window(self, title, url, **kwargs):
+        self.window_calls.append((title, url, kwargs))
+        return object()
+
+    def start(self):
+        self.start_calls += 1
+
+
+def test_run_desktop_app_uses_dynamic_loopback_url(monkeypatch):
+    migrator = FakeMigrator()
+    webview = FakeWebView()
+    readiness_urls = []
+
+    monkeypatch.setattr(macos_app.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(macos_app, "find_free_port", lambda _host: 43123)
+    monkeypatch.setattr(
+        macos_app,
+        "start_web_server",
+        lambda instance, host, port: instance.run(host=host, port=port, debug=False),
+    )
+
+    macos_app.run_desktop_app(
+        migrator_factory=lambda: migrator,
+        webview_module=webview,
+        readiness=lambda url: readiness_urls.append(url),
+    )
+
+    assert migrator.run_calls == [
+        {"host": "127.0.0.1", "port": 43123, "debug": False}
+    ]
+    assert readiness_urls == ["http://127.0.0.1:43123/"]
+    assert webview.window_calls[0][1] == "http://127.0.0.1:43123/"
+    assert webview.start_calls == 1
