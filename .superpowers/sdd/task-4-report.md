@@ -77,3 +77,26 @@ PASS: no output
 - The backend currently emits migration and export events with related but not identical payloads; the adapter covers the documented progress, completed, cancelled, and error forms. Future backend event fields will need explicit adapter updates.
 - The startup screen intentionally retains only the constructed client for Task 5 to consume; it does not start a migration or persist credentials.
 - The pre-existing unstaged edit to `欢迎使用Obsidian.md` remains untouched and unstaged. Existing `.superpowers/sdd` task materials also remain uncommitted.
+
+## Fixes
+
+- Added table-driven API client coverage for the backend's migration/export completed, error, and cancelled event payloads, including completion statistics and the cancellation-message fallback.
+- Added a focused Socket.IO connection test verifying that the client joins the task room after connect and removes registered listeners before disconnecting.
+- Updated `connectMigrationEvents` to unregister its `connect` and task-event listeners during `disconnect()`.
+
+### Review-fix RED/GREEN evidence
+
+RED:
+
+```text
+$ npm run test:frontend -- frontend/src/api/client.test.ts
+FAIL connectMigrationEvents > joins the task room on connection and removes listeners on disconnect
+expected socket.off to be called; received 0 calls
+```
+
+GREEN:
+
+```text
+$ npm run test:frontend -- frontend/src/api/client.test.ts
+PASS frontend/src/api/client.test.ts (8 tests)
+```

@@ -99,7 +99,20 @@ export function normalizeMigrationEvent(name: string, payload: unknown): Migrati
 export function connectMigrationEvents(baseUrl: string, taskId: string, onEvent: (event: MigrationEvent) => void): { disconnect(): void } {
   const socket: Socket = io(baseUrl, { transports: ["websocket", "polling"] });
   const names = ["migration_progress", "migration_completed", "migration_cancelled", "migration_error", "export_progress", "export_completed", "export_cancelled", "export_error"];
-  socket.on("connect", () => socket.emit("join_task", { task_id: taskId }));
-  for (const name of names) socket.on(name, (payload: unknown) => { const event = normalizeMigrationEvent(name, payload); if (event?.taskId === taskId) onEvent(event); });
-  return { disconnect: () => socket.disconnect() };
+  const joinTask = () => socket.emit("join_task", { task_id: taskId });
+  const listeners = names.map((name) => [name, (payload: unknown) => {
+    const event = normalizeMigrationEvent(name, payload);
+    if (event?.taskId === taskId) onEvent(event);
+  }] as const);
+
+  socket.on("connect", joinTask);
+  for (const [name, listener] of listeners) socket.on(name, listener);
+
+  return {
+    disconnect: () => {
+      socket.off("connect", joinTask);
+      for (const [name, listener] of listeners) socket.off(name, listener);
+      socket.disconnect();
+    },
+  };
 }
