@@ -520,10 +520,17 @@ class WebMigrator:
                 'error': str(e)
             }, room=task_id)
 
-    def run(self, host='127.0.0.1', port=5000, debug=False):
+    def run(self, host='127.0.0.1', port=5000, debug=False,
+            allow_unsafe_werkzeug=False):
         """运行Web应用"""
         print(f"🌐 启动Web界面: http://{host}:{port}")
-        self.socketio.run(self.app, host=host, port=port, debug=debug)
+        self.socketio.run(
+            self.app,
+            host=host,
+            port=port,
+            debug=debug,
+            allow_unsafe_werkzeug=allow_unsafe_werkzeug,
+        )
 
 
 class WebMigrationHandler(UnifiedMigrator):

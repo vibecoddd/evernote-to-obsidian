@@ -1,5 +1,6 @@
 from pathlib import Path
 import socket
+import threading
 
 import macos_app
 
@@ -81,9 +82,11 @@ def test_wait_for_server_raises_startup_error_after_deadline():
 class FakeMigrator:
     def __init__(self):
         self.run_calls = []
+        self.started = threading.Event()
 
     def run(self, **kwargs):
         self.run_calls.append(kwargs)
+        self.started.set()
 
 
 class FakeWebView:
@@ -106,21 +109,53 @@ def test_run_desktop_app_uses_dynamic_loopback_url(monkeypatch):
 
     monkeypatch.setattr(macos_app.platform, "system", lambda: "Darwin")
     monkeypatch.setattr(macos_app, "find_free_port", lambda _host: 43123)
-    monkeypatch.setattr(
-        macos_app,
-        "start_web_server",
-        lambda instance, host, port: instance.run(host=host, port=port, debug=False),
-    )
+
+    def readiness(url):
+        assert migrator.started.wait(1)
+        readiness_urls.append(url)
 
     macos_app.run_desktop_app(
         migrator_factory=lambda: migrator,
         webview_module=webview,
-        readiness=lambda url: readiness_urls.append(url),
+        readiness=readiness,
     )
 
     assert migrator.run_calls == [
-        {"host": "127.0.0.1", "port": 43123, "debug": False}
+        {
+            "host": "127.0.0.1",
+            "port": 43123,
+            "debug": False,
+            "allow_unsafe_werkzeug": True,
+        }
     ]
     assert readiness_urls == ["http://127.0.0.1:43123/"]
     assert webview.window_calls[0][1] == "http://127.0.0.1:43123/"
     assert webview.start_calls == 1
+
+
+def test_web_migrator_forwards_desktop_server_option(monkeypatch):
+    from web_app import WebMigrator
+
+    migrator = WebMigrator()
+    run_calls = []
+    monkeypatch.setattr(
+        migrator.socketio,
+        "run",
+        lambda app, **kwargs: run_calls.append(kwargs),
+    )
+
+    migrator.run(
+        host="127.0.0.1",
+        port=43123,
+        debug=False,
+        allow_unsafe_werkzeug=True,
+    )
+
+    assert run_calls == [
+        {
+            "host": "127.0.0.1",
+            "port": 43123,
+            "debug": False,
+            "allow_unsafe_werkzeug": True,
+        }
+    ]

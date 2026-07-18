@@ -58,7 +58,12 @@ def wait_for_server(
 def start_web_server(migrator: Any, host: str, port: int) -> threading.Thread:
     thread = threading.Thread(
         target=migrator.run,
-        kwargs={"host": host, "port": port, "debug": False},
+        kwargs={
+            "host": host,
+            "port": port,
+            "debug": False,
+            "allow_unsafe_werkzeug": True,
+        },
         name="macos-web-server",
         daemon=True,
     )
