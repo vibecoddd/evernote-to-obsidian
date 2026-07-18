@@ -2,13 +2,17 @@
   "name": "evernote-to-obsidian-desktop",
   "version": "0.1.0",
   "private": true,
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev:renderer": "vite --config vite.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "test:frontend": "vitest run",
     "build:renderer": "vite build --config vite.config.ts",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "build": "npm run typecheck && npm run test:frontend && npm run build:renderer && npm run build:electron"
+    "build": "npm run typecheck && npm run test:frontend && npm run build:renderer && npm run build:electron",
+    "package:mac": "python scripts/build_electron_app.py --mac",
+    "package:win": "python scripts/build_electron_app.py --win",
+    "package:current": "python scripts/build_electron_app.py"
   },
   "engines": {
     "node": ">=22.12.0",
@@ -28,6 +32,7 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "4.7.0",
+    "electron-builder": "26.7.0",
     "jsdom": "26.1.0",
     "typescript": "7.0.2",
     "vite": "6.4.1",

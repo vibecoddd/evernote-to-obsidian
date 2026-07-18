@@ -1,0 +1,15 @@
+appId: com.evernote-to-obsidian.migrator
+productName: 印象笔记迁移工具
+directories:
+  output: dist-electron
+files:
+  - dist-electron/**/*
+  - dist/renderer/**/*
+  - package.json
+extraResources:
+  - from: dist/backend
+    to: backend
+mac:
+  target: dmg
+win:
+  target: nsis
