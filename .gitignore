@@ -26,6 +26,7 @@ MANIFEST
 # PyInstaller
 *.manifest
 *.spec
+!packaging/macos/*.spec
 
 # Installer logs
 pip-log.txt
