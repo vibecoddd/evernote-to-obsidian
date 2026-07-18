@@ -215,11 +215,12 @@ git commit -m "feat: add macOS desktop runtime helpers"
 **Files:**
 - Modify: `test_macos_app.py`
 - Modify: `macos_app.py`
+- Modify: `web_app.py`
 
 **Interfaces:**
-- Produces `start_web_server(migrator, host, port) -> threading.Thread`.
+- Produces `start_web_server(migrator, host, port) -> threading.Thread`, forwarding `allow_unsafe_werkzeug=True` for the local bundled server.
 - Produces `run_desktop_app(migrator_factory, webview_module, readiness=wait_for_server) -> None`.
-- `run_desktop_app` calls `migrator.run(host="127.0.0.1", port=<dynamic>, debug=False)` and loads `http://127.0.0.1:<dynamic>/`.
+- `run_desktop_app` calls `migrator.run(host="127.0.0.1", port=<dynamic>, debug=False, allow_unsafe_werkzeug=True)` and loads `http://127.0.0.1:<dynamic>/`.
 
 - [ ] **Step 1: Write the failing lifecycle test**
 
@@ -250,12 +251,8 @@ def test_run_desktop_app_uses_dynamic_loopback_url(monkeypatch):
     webview = FakeWebView()
     readiness_urls = []
 
-    monkeypatch.setattr(macos_app, "find_free_port", lambda: 43123)
-    monkeypatch.setattr(
-        macos_app,
-        "start_web_server",
-        lambda instance, host, port: instance.run(host=host, port=port, debug=False),
-    )
+    monkeypatch.setattr(macos_app.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(macos_app, "find_free_port", lambda _host: 43123)
 
     macos_app.run_desktop_app(
         migrator_factory=lambda: migrator,
@@ -264,7 +261,12 @@ def test_run_desktop_app_uses_dynamic_loopback_url(monkeypatch):
     )
 
     assert migrator.run_calls == [
-        {"host": "127.0.0.1", "port": 43123, "debug": False}
+        {
+            "host": "127.0.0.1",
+            "port": 43123,
+            "debug": False,
+            "allow_unsafe_werkzeug": True,
+        }
     ]
     assert readiness_urls == ["http://127.0.0.1:43123/"]
     assert webview.window_calls[0][1] == "http://127.0.0.1:43123/"
@@ -289,7 +291,12 @@ from typing import Any
 def start_web_server(migrator: Any, host: str, port: int) -> threading.Thread:
     thread = threading.Thread(
         target=migrator.run,
-        kwargs={"host": host, "port": port, "debug": False},
+        kwargs={
+            "host": host,
+            "port": port,
+            "debug": False,
+            "allow_unsafe_werkzeug": True,
+        },
         name="macos-web-server",
         daemon=True,
     )
@@ -355,6 +362,21 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+```
+
+Update the existing `WebMigrator.run` signature so the desktop-only option is forwarded without changing normal Web mode defaults:
+
+```python
+def run(self, host="127.0.0.1", port=5000, debug=False,
+        allow_unsafe_werkzeug=False):
+    print(f"🌐 启动Web界面: http://{host}:{port}")
+    self.socketio.run(
+        self.app,
+        host=host,
+        port=port,
+        debug=debug,
+        allow_unsafe_werkzeug=allow_unsafe_werkzeug,
+    )
 ```
 
 - [ ] **Step 4: Run focused lifecycle and helper tests**
