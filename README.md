@@ -93,6 +93,36 @@ python3 migrate.py --config my_config.yaml
 python3 migrate.py --help
 ```
 
+### 🤖 Codex / Claude Code CLI
+
+仓库也提供可安装的非交互命令，Codex 会读取 `AGENTS.md`，Claude Code 会读取
+`CLAUDE.md`：
+
+```bash
+# 安装 CLI
+python3 -m pip install -e .
+
+# 先预览；--json 便于编码助手解析结果
+evernote-to-obsidian convert \
+  --input /path/export.enex \
+  --output /path/ObsidianVault \
+  --preview --json
+
+# 确认预览结果后执行转换
+evernote-to-obsidian convert \
+  --input /path/export.enex \
+  --output /path/ObsidianVault \
+  --json
+
+# 完整导出迁移（不会自动打开 Obsidian）
+EVERNOTE_USERNAME='user@example.com' \
+EVERNOTE_PASSWORD='app-password' \
+evernote-to-obsidian migrate \
+  --config /path/config.yaml --no-open --json
+```
+
+机器模式会输出单个 JSON 对象并使用明确退出码。请勿将密码写入命令参数或提交到仓库的配置文件。
+
 ## 🌐 Web界面使用指南
 
 ### 📱 界面导航

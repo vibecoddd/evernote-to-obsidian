@@ -125,6 +125,14 @@ class AgentCliTests(unittest.TestCase):
 
         self.assertIs(converter.config, config)
 
+    def test_agent_guides_use_json_preview_command(self):
+        for name in ("AGENTS.md", "CLAUDE.md"):
+            text = (Path(__file__).parent / name).read_text(encoding="utf-8")
+            self.assertIn("evernote-to-obsidian convert", text)
+            self.assertIn("--preview", text)
+            self.assertIn("--json", text)
+            self.assertIn("--no-open", text)
+
 
 if __name__ == "__main__":
     unittest.main()
