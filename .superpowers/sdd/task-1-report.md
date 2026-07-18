@@ -38,4 +38,4 @@ The existing user modification in `欢迎使用Obsidian.md` was preserved and wa
 
 ## Commit
 
-`e38978b` (amended once to include this commit hash in the report).
+`69728d5` (`build: scaffold Electron React workspace`). This report update is the follow-up documentation commit.
