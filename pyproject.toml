@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evernote-to-obsidian"
+version = "0.1.0"
+description = "Convert Evernote ENEX exports into an Obsidian vault"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+dependencies = [
+  "lxml>=4.9.0",
+  "html2text>=2020.1.16",
+  "PyYAML>=6.0",
+  "click>=8.0.0",
+  "colorama>=0.4.4",
+  "tqdm>=4.64.0",
+  "pillow>=9.0.0",
+  "evernote-backup>=1.9.0",
+]
+
+[project.optional-dependencies]
+web = [
+  "flask>=2.3.0",
+  "flask-socketio>=5.3.0",
+  "python-socketio>=5.8.0",
+  "eventlet>=0.33.0",
+]
+
+[project.scripts]
+evernote-to-obsidian = "agent_cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = [
+  "agent_cli",
+  "config",
+  "deduplication_manager",
+  "enex_parser",
+  "evernote2obsidian",
+  "evernote_exporter",
+  "file_organizer",
+  "markdown_converter",
+  "obsidian_manager",
+  "sync_manager",
+  "unified_migrator",
+]

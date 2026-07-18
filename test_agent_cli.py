@@ -104,6 +104,14 @@ class AgentCliTests(unittest.TestCase):
         self.assertFalse(payload["success"])
         self.assertIn("credentials", payload["error"].lower())
 
+    def test_pyproject_declares_console_script(self):
+        text = (Path(__file__).parent / "pyproject.toml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('name = "evernote-to-obsidian"', text)
+        self.assertIn('evernote-to-obsidian = "agent_cli:main"', text)
+
 
 if __name__ == "__main__":
     unittest.main()
