@@ -76,7 +76,9 @@ class AgentCliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(payload["success"])
         self.assertGreaterEqual(payload["stats"]["converted_notes"], 1)
-        self.assertEqual(len(list(self.vault.rglob("测试笔记.md"))), 1)
+        note_path = self.vault / "测试笔记本" / "测试笔记.md"
+        self.assertTrue(note_path.is_file())
+        self.assertIn('title: "测试笔记"', note_path.read_text(encoding="utf-8"))
 
     def test_command_line_paths_override_yaml_config(self):
         config = self.temp_dir / "config.yaml"

@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
+from config import as_config_data
 from enex_parser import Note
 
 
@@ -22,7 +23,7 @@ class MarkdownConverter:
         Args:
             config: 配置字典
         """
-        self.config = config
+        self.config = as_config_data(config)
         self.h2t = self._setup_html2text()
 
     def _setup_html2text(self) -> html2text.HTML2Text:

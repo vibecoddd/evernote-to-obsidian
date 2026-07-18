@@ -12,6 +12,7 @@ import platform
 
 import colorama
 from colorama import Fore, Style
+from config import as_config_data
 
 
 class ObsidianManager:
@@ -19,8 +20,8 @@ class ObsidianManager:
 
     def __init__(self, config: Dict[str, Any]):
         """初始化Obsidian管理器"""
-        self.config = config
-        self.vault_path = Path(config.get('output.obsidian_vault', ''))
+        self.config = as_config_data(config)
+        self.vault_path = Path(self.config.get('output.obsidian_vault', ''))
 
     def detect_obsidian_installation(self) -> Optional[str]:
         """检测Obsidian安装路径"""
@@ -112,9 +113,9 @@ class ObsidianManager:
         with open(obsidian_dir / 'app.json', 'w', encoding='utf-8') as f:
             json.dump(app_config, f, indent=2, ensure_ascii=False)
 
-    def create_welcome_note(self) -> None:
+    def create_welcome_note(self) -> Optional[str]:
         """创建欢迎笔记"""
-        welcome_content = f"""# 🎉 欢迎使用Obsidian！
+        welcome_content = f"""# 欢迎使用Obsidian 🎉
 
 您的印象笔记已成功迁移到Obsidian。
 
@@ -148,8 +149,9 @@ class ObsidianManager:
         welcome_file = self.vault_path / "欢迎使用Obsidian.md"
         with open(welcome_file, 'w', encoding='utf-8') as f:
             f.write(welcome_content)
+        return str(welcome_file)
 
-    def create_templates(self) -> None:
+    def create_templates(self) -> Optional[str]:
         """创建常用模板"""
         templates_dir = self.vault_path / 'templates'
 
@@ -168,8 +170,10 @@ class ObsidianManager:
 标签: #日记 #{{date:YYYY}}
 """
 
-        with open(templates_dir / '日记模板.md', 'w', encoding='utf-8') as f:
+        template_file = templates_dir / '日记模板.md'
+        with open(template_file, 'w', encoding='utf-8') as f:
             f.write(daily_template)
+        return str(templates_dir)
 
     def open_obsidian(self) -> bool:
         """尝试打开Obsidian应用"""

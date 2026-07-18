@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import hashlib
 import json
 
+from config import as_config_data
 from enex_parser import Note
 
 
@@ -24,7 +25,7 @@ class FileOrganizer:
         Args:
             config: 配置字典
         """
-        self.config = config
+        self.config = as_config_data(config)
         # 正确获取嵌套配置
         output_config = config.get('output', {})
         vault_path = output_config.get('obsidian_vault', '/tmp/obsidian_vault')
@@ -94,7 +95,7 @@ class FileOrganizer:
         # 生成文件名
         filename = self._generate_unique_filename(note, folder_name)
 
-        return os.path.join(folder_name, filename)
+        return filename
 
     def _organize_by_tags(self, note: Note) -> str:
         """
@@ -113,7 +114,7 @@ class FileOrganizer:
             folder_name = "untagged"
 
         filename = self._generate_unique_filename(note, folder_name)
-        return os.path.join(folder_name, filename)
+        return filename
 
     def _organize_by_date(self, note: Note) -> str:
         """
@@ -135,7 +136,7 @@ class FileOrganizer:
             folder_name = datetime.now().strftime(date_format)
 
         filename = self._generate_unique_filename(note, folder_name)
-        return os.path.join(folder_name, filename)
+        return filename
 
     def _organize_flat(self, note: Note) -> str:
         """
@@ -425,7 +426,7 @@ class FileOrganizer:
         except Exception as e:
             print(f"Warning: Failed to set timestamps for {file_path}: {e}")
 
-    def create_index_file(self, organized_notes: List[Tuple[Note, str]], notebook_name: str) -> None:
+    def create_index_file(self, organized_notes: List[Tuple[Note, str]], notebook_name: str) -> Optional[str]:
         """
         创建索引文件
 
@@ -439,9 +440,11 @@ class FileOrganizer:
 
             with open(index_path, 'w', encoding='utf-8') as f:
                 f.write(index_content)
+            return str(index_path)
 
         except Exception as e:
             print(f"Warning: Failed to create index file: {e}")
+            return None
 
     def _generate_index_content(self, organized_notes: List[Tuple[Note, str]], notebook_name: str) -> str:
         """
@@ -455,7 +458,7 @@ class FileOrganizer:
             索引内容
         """
         lines = [
-            f"# {notebook_name} - 笔记索引",
+            f"# {notebook_name} 索引",
             "",
             f"导入时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"笔记总数: {len(organized_notes)}",
@@ -481,7 +484,8 @@ class FileOrganizer:
 
             for note, file_path in sorted(notes, key=lambda x: x[0].title or ""):
                 title = note.title or "无标题"
-                link = f"[[{os.path.splitext(os.path.basename(file_path))[0]}]]"
+                link_target = os.path.splitext(file_path)[0].replace(os.sep, '/')
+                link = f"[[{link_target}]]"
 
                 # 添加标签信息
                 tags_info = ""

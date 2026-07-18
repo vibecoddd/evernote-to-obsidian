@@ -8,6 +8,29 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+
+class ConfigData(dict):
+    """Dictionary view that supports the dotted keys used by components."""
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self:
+            return super().get(key, default)
+
+        value: Any = self
+        for part in key.split('.'):
+            if not isinstance(value, dict) or part not in value:
+                return default
+            value = value[part]
+        return value
+
+
+def as_config_data(config: Any) -> Any:
+    """Adapt legacy nested dictionaries to the dotted-key config protocol."""
+    if isinstance(config, ConfigData) or not isinstance(config, dict):
+        return config
+    return ConfigData(config)
+
+
 class Config:
     """配置管理类"""
 
@@ -216,7 +239,7 @@ class Config:
         Returns:
             完整配置字典
         """
-        return self.config_data.copy()
+        return ConfigData(self.config_data)
 
     def update(self, updates: Dict[str, Any]) -> None:
         """

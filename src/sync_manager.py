@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Any, Tuple
 from dataclasses import asdict
 
+from config import as_config_data
 from enex_parser import Note
 
 
@@ -236,7 +237,7 @@ class SyncManager:
         Args:
             config: 配置字典
         """
-        self.config = config
+        self.config = as_config_data(config)
         self.incremental = config.get('sync.incremental', True)
         self.check_modification_time = config.get('sync.check_modification_time', True)
         self.skip_unchanged = config.get('sync.skip_unchanged', True)
