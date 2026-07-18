@@ -32,7 +32,7 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
     case "preflight/result": return { ...state, preflight: action.result };
     case "migration/progress": return { ...state, migration: action.progress };
     case "migration/log": return { ...state, logs: [...state.logs, action.entry] };
-    case "migration/terminal": return { ...state, result: action.result, migration: { ...state.migration, status: action.result.status, message: action.result.message, stats: action.result.stats } };
+    case "migration/terminal": return { ...state, result: action.result, migration: { ...state.migration, status: action.result.status, message: action.result.message, progress: action.result.status === "completed" ? 100 : state.migration.progress, stats: action.result.stats ?? state.migration.stats } };
     case "backend/ready": return { ...state, backend: { url: action.url, status: "ready" }, error: null };
     case "error": return { ...state, error: action.message, backend: state.backend.status === "starting" ? { ...state.backend, status: "error" } : state.backend };
     case "error/clear": return { ...state, error: null };
