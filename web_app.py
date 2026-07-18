@@ -15,6 +15,7 @@ import threading
 import uuid
 
 from flask import Flask, render_template, request, jsonify, session, send_file
+from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import colorama
 
@@ -23,6 +24,7 @@ src_dir = Path(__file__).parent / 'src'
 sys.path.insert(0, str(src_dir))
 
 from config import Config
+from desktop_api import preflight_config
 from unified_migrator import UnifiedMigrator
 
 
@@ -32,16 +34,33 @@ class WebMigrator:
     def __init__(self):
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = 'evernote_obsidian_migration_2024'
-        self.socketio = SocketIO(self.app, cors_allowed_origins="*")
+        desktop_origins = ['null', 'http://localhost:5173', 'http://127.0.0.1:5173']
+        desktop_mode = os.environ.get('EVERNOTE_DESKTOP_MODE') == '1'
+        if desktop_mode:
+            CORS(self.app, resources={r'/api/*': {'origins': desktop_origins}})
+        self.socketio = SocketIO(
+            self.app,
+            cors_allowed_origins=desktop_origins if desktop_mode else '*',
+        )
 
         # 存储活跃的迁移任务
         self.active_migrations = {}
+        self.cancel_events = {}
 
         self.setup_routes()
         self.setup_socketio_events()
 
     def setup_routes(self):
         """设置路由"""
+
+        @self.app.route('/api/healthz')
+        def healthz():
+            return jsonify({'status': 'ok'})
+
+        @self.app.route('/api/preflight', methods=['POST'])
+        def preflight():
+            result = preflight_config(request.get_json(silent=True))
+            return jsonify(result), 200 if result['ok'] else 422
 
         @self.app.route('/')
         def index():
@@ -81,6 +100,7 @@ class WebMigrator:
                 task_id = str(uuid.uuid4())
                 session['task_id'] = task_id
                 print(f"生成任务ID: {task_id}")
+                self.cancel_events[task_id] = threading.Event()
 
                 # 创建配置对象
                 config = Config()
@@ -268,6 +288,13 @@ class WebMigrator:
                     'message': '任务未找到'
                 })
 
+        @self.app.route('/api/cancel_migration/<task_id>', methods=['POST'])
+        def cancel_migration(task_id):
+            if task_id not in self.active_migrations and task_id not in self.cancel_events:
+                return jsonify({'status': 'not_found', 'task_id': task_id}), 404
+            self.cancel_events.setdefault(task_id, threading.Event()).set()
+            return jsonify({'task_id': task_id, 'status': 'cancelling'})
+
         @self.app.route('/api/upload_enex', methods=['POST'])
         def upload_enex():
             """上传ENEX文件"""
@@ -326,6 +353,7 @@ class WebMigrator:
         """在后台运行迁移任务"""
         try:
             print(f"🚀 开始迁移任务 {task_id}")
+            cancel_event = self.cancel_events.setdefault(task_id, threading.Event())
 
             # 初始化任务状态
             self.active_migrations[task_id] = {
@@ -357,7 +385,9 @@ class WebMigrator:
 
             # 创建自定义迁移器
             print(f"🔧 创建迁移处理器...")
-            migrator = WebMigrationHandler(task_id, self.socketio, self.active_migrations)
+            migrator = WebMigrationHandler(
+                task_id, self.socketio, self.active_migrations, cancel_event,
+            )
             migrator.config = config
 
             print(f"📝 配置信息: {config.get_all()}")
@@ -368,19 +398,27 @@ class WebMigrator:
             print(f"✅ 迁移完成，结果: {success}")
 
             # 更新最终状态
-            self.active_migrations[task_id].update({
-                'status': 'completed' if success else 'failed',
-                'progress': 100,
-                'end_time': datetime.now().isoformat(),
-                'message': '迁移完成!' if success else '迁移失败'
-            })
+            if cancel_event.is_set():
+                self.active_migrations[task_id].update({
+                    'status': 'cancelled',
+                    'end_time': datetime.now().isoformat(),
+                    'message': '迁移已取消，已写入的文件不会回滚'
+                })
+                self.socketio.emit('migration_cancelled', {'task_id': task_id}, room=task_id)
+            else:
+                self.active_migrations[task_id].update({
+                    'status': 'completed' if success else 'failed',
+                    'progress': 100,
+                    'end_time': datetime.now().isoformat(),
+                    'message': '迁移完成!' if success else '迁移失败'
+                })
 
-            # 发送完成事件
-            self.socketio.emit('migration_completed', {
-                'task_id': task_id,
-                'success': success,
-                'result': self.active_migrations[task_id]
-            }, room=task_id)
+                # 发送完成事件
+                self.socketio.emit('migration_completed', {
+                    'task_id': task_id,
+                    'success': success,
+                    'result': self.active_migrations[task_id]
+                }, room=task_id)
 
         except Exception as e:
             print(f"❌ 迁移任务错误: {e}")
@@ -536,11 +574,16 @@ class WebMigrator:
 class WebMigrationHandler(UnifiedMigrator):
     """Web界面专用的迁移处理器"""
 
-    def __init__(self, task_id: str, socketio, active_migrations: dict):
+    def __init__(self, task_id: str, socketio, active_migrations: dict,
+                 cancel_event: threading.Event | None = None):
         super().__init__()
         self.task_id = task_id
         self.socketio = socketio
         self.active_migrations = active_migrations
+        self.cancel_event = cancel_event or threading.Event()
+
+    def _is_cancelled(self) -> bool:
+        return self.cancel_event.is_set()
 
     def _emit_progress(self, step: int, step_name: str, progress: int, message: str):
         """发送进度更新"""
@@ -614,6 +657,8 @@ class WebMigrationHandler(UnifiedMigrator):
             self._emit_progress(2, '转换为Markdown', 20, f'开始处理 {len(enex_files)} 个文件...')
 
             for i, enex_file in enumerate(enex_files):
+                if self._is_cancelled():
+                    return False
                 try:
                     progress = 20 + (i * 60 // len(enex_files))
                     self._emit_progress(2, '转换为Markdown', progress, f'处理文件: {Path(enex_file).name}')
@@ -720,6 +765,9 @@ class WebMigrationHandler(UnifiedMigrator):
         from datetime import datetime
         self.stats['start_time'] = datetime.now()
 
+        if self._is_cancelled():
+            return False
+
         # 检查是否有已上传的ENEX文件
         uploaded_files = self.config.get('input.enex_files', [])
 
@@ -736,12 +784,18 @@ class WebMigrationHandler(UnifiedMigrator):
             if not self._step_export_evernote():
                 return False
 
+            if self._is_cancelled():
+                return False
             if not self._step_convert_to_markdown():
                 return False
 
+        if self._is_cancelled():
+            return False
         if not self._step_setup_obsidian():
             return False
 
+        if self._is_cancelled():
+            return False
         if not self._step_post_process():
             return False
 
