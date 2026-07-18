@@ -18,6 +18,10 @@ const DEFAULT_HEALTH_TIMEOUT_MS = 15_000;
 const DEFAULT_HEALTH_INTERVAL_MS = 200;
 const DEFAULT_STOP_TIMEOUT_MS = 5_000;
 
+export function resolveRendererPath(appPath: string): string {
+  return path.join(appPath, "dist", "renderer", "index.html");
+}
+
 export async function reserveLoopbackPort(): Promise<number> {
   const server = net.createServer();
 
@@ -180,6 +184,7 @@ interface DesktopWindow {
 
 interface DesktopDependencies {
   app: {
+    getAppPath: () => string;
     isPackaged?: boolean;
     on: (event: string, listener: (...args: any[]) => void) => unknown;
     quit: () => void;
@@ -224,7 +229,7 @@ export function createDesktopLifecycle(
     BrowserWindow,
     dialog: dialog as unknown as DesktopDependencies["dialog"],
     ipcMain,
-    rendererPath: path.resolve(process.cwd(), "dist", "renderer", "index.html"),
+    rendererPath: resolveRendererPath(app.getAppPath()),
     shell,
     startBackend,
     stopTimeoutMs: DEFAULT_STOP_TIMEOUT_MS,

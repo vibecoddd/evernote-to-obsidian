@@ -39,7 +39,10 @@ def test_electron_builder_config_packages_renderer_and_backend_for_each_platform
     assert "target: dmg" in config
     assert "target: nsis" in config
     assert "directories:" in config
-    assert "output: dist-electron" in config
+    assert "output: release" in config
+    assert "files:" in config
+    assert "- dist-electron/**/*" in config
+    assert "- release/**/*" not in config
 
 
 def test_backend_build_script_constructs_pyinstaller_command_without_running_it(monkeypatch):

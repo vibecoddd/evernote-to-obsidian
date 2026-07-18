@@ -97,6 +97,7 @@ static/uploads/
 # Electron/React frontend generated artifacts
 node_modules/
 dist-electron/
+release/
 .vite/
 coverage/
 

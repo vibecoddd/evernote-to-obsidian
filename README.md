@@ -64,6 +64,18 @@ open "dist/印象笔记迁移工具.app"
 
 客户端复用现有迁移页面和 Python 逻辑，运行时只监听本机 `127.0.0.1`。完整的构建、签名和故障排除说明见 [MACOS_CLIENT.md](MACOS_CLIENT.md)。
 
+### Electron 安装包构建
+
+Electron 的主进程编译产物位于 `dist-electron/`，而安装包输出到 `release/`，以免构建器将先前生成的安装包重新作为应用输入。构建当前平台安装包：
+
+```bash
+npm ci
+python3 -m pip install -r requirements-desktop-build.txt
+npm run package:current
+```
+
+使用 `npm run package:mac` 或 `npm run package:win` 选择对应的安装包目标。
+
 无论使用哪种方式，工具都会自动：
 1. 🔐 引导您输入印象笔记账号
 2. 📤 自动导出所有笔记为ENEX格式文件

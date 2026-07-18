@@ -1,7 +1,7 @@
 appId: com.evernote-to-obsidian.migrator
 productName: 印象笔记迁移工具
 directories:
-  output: dist-electron
+  output: release
 files:
   - dist-electron/**/*
   - dist/renderer/**/*

@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const electron = vi.hoisted(() => ({
-  app: {},
+  app: { getAppPath: () => "/test/app.asar" },
   BrowserWindow: class {},
   dialog: {},
   ipcMain: {},
@@ -15,9 +15,18 @@ vi.mock("electron", () => electron);
 import {
   createDesktopLifecycle,
   reserveLoopbackPort,
+  resolveRendererPath,
   startBackend,
   waitForBackend,
 } from "./main";
+
+describe("resolveRendererPath", () => {
+  it("locates the bundled renderer beneath Electron's app path", () => {
+    expect(resolveRendererPath("/Applications/Migrator.app/Contents/Resources/app.asar")).toBe(
+      "/Applications/Migrator.app/Contents/Resources/app.asar/dist/renderer/index.html",
+    );
+  });
+});
 
 describe("waitForBackend", () => {
   afterEach(() => {
@@ -135,6 +144,7 @@ describe("desktop lifecycle", () => {
       webContents: { on: vi.fn(), send: vi.fn() },
     };
     const app = {
+      getAppPath: vi.fn(() => "/app"),
       requestSingleInstanceLock: vi.fn().mockReturnValue(true),
       whenReady: vi.fn().mockResolvedValue(undefined),
       on: vi.fn((event: string, listener: () => void) => {
@@ -178,6 +188,7 @@ describe("desktop lifecycle", () => {
       webContents: { on: vi.fn(), send: vi.fn() },
     };
     const app = {
+      getAppPath: vi.fn(() => "/app"),
       requestSingleInstanceLock: vi.fn().mockReturnValue(true),
       whenReady: vi.fn().mockResolvedValue(undefined),
       on: vi.fn((event: string, listener: (event: { preventDefault: () => void }) => void) => {
@@ -231,6 +242,7 @@ describe("desktop lifecycle", () => {
       webContents: { on: vi.fn(), send: vi.fn() },
     };
     const app = {
+      getAppPath: vi.fn(() => "/app"),
       requestSingleInstanceLock: vi.fn().mockReturnValue(true),
       whenReady: vi.fn().mockResolvedValue(undefined),
       on: vi.fn((event: string, listener: (event: { preventDefault: () => void }) => void) => {
