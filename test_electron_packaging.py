@@ -168,6 +168,30 @@ def test_all_current_electron_packaging_entry_points_require_supported_node_firs
         assert npm_warning_caveat in documentation[:prerequisite_offset], relative_path
 
 
+def test_active_electron_plan_and_design_document_node_prerequisite():
+    prerequisite = "Node.js >=22.12.0"
+    npm_warning_caveat = "npm 的 engine 警告不足以"
+    canonical_guidance = "ELECTRON_CLIENT.md"
+
+    for relative_path in (
+        "docs/superpowers/plans/2026-07-18-electron-desktop-client.md",
+        "docs/superpowers/specs/2026-07-18-electron-desktop-client-design.md",
+    ):
+        documentation = read_project_file(relative_path)
+
+        assert prerequisite in documentation, relative_path
+        assert npm_warning_caveat in documentation, relative_path
+        assert canonical_guidance in documentation, relative_path
+
+        first_npm_command = re.search(
+            r"npm (?:install|run|exec|test|ci)\\b", documentation
+        )
+        if first_npm_command is not None:
+            command_offset = first_npm_command.start()
+            assert prerequisite in documentation[:command_offset], relative_path
+            assert npm_warning_caveat in documentation[:command_offset], relative_path
+
+
 def test_electron_client_documentation_covers_task_eight_packaging_contract():
     documentation = read_project_file("ELECTRON_CLIENT.md")
 

@@ -26,3 +26,8 @@
 
 - Added the prominent Node.js >=22.12.0 prerequisite and npm engine-warning caveat before the Electron/macOS install and packaging command blocks in `MACOS_CLIENT.md` and the retained historical macOS plan and design. These legacy documents now identify `ELECTRON_CLIENT.md` as the canonical current workflow.
 - Extended `test_electron_packaging.py` so every maintained Electron/macOS documentation entry point must state that prerequisite and caveat before its actionable command block.
+
+## Fixes
+
+- Added a Node.js >=22.12.0 prerequisite, npm engine-warning caveat, and `ELECTRON_CLIENT.md` canonical-guidance link to the active Electron implementation plan and design. The plan places the prerequisite before every actionable npm command; the design keeps its architectural content while directing operational commands to the canonical guide.
+- Extended `test_electron_packaging.py` to enforce that both active Electron documents contain the prerequisite, caveat, and canonical-guidance link, and that any actionable npm command follows the prerequisite.

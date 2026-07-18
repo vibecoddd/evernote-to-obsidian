@@ -26,6 +26,10 @@
 - 不在本次工作中承诺 Apple notarization、Windows 代码签名或自动更新；这些属于发布配置。
 - 不保留 Jinja/Bootstrap 作为 Electron 客户端的长期渲染方案。旧 Web 页面可在迁移期间保留作为兼容入口。
 
+## 运行前提与操作指南
+
+开发或发布此客户端时，在执行任何 `npm` 安装、测试、构建或打包命令前必须使用 **Node.js >=22.12.0**。npm 的 engine 警告不足以阻止不受支持的 Node 版本继续安装或构建，因此不能把警告当作兼容性检查；发布打包必须使用 Node 22.12+。已安装的桌面应用不要求终端用户预装 Node.js。当前可执行的开发、构建、打包和故障排除命令以 [ELECTRON_CLIENT.md](../../../ELECTRON_CLIENT.md) 为准；本设计保留架构决策与验收范围。
+
 ## 方案选择
 
 ### 方案 A：Electron 仅替换 PyWebView
