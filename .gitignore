@@ -93,5 +93,11 @@ migration_*.json
 uploads/
 static/uploads/
 
+# Electron/React frontend generated artifacts
+node_modules/
+dist-electron/
+.vite/
+coverage/
+
 # Configuration backups
 config_backup_*.yaml

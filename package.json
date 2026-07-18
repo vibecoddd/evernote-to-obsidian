@@ -1,0 +1,33 @@
+{
+  "name": "evernote-to-obsidian-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:renderer": "vite --config vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "test:frontend": "vitest run --passWithNoTests",
+    "build:renderer": "vite build --config vite.config.ts",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run typecheck && npm run test:frontend && npm run build:renderer && npm run build:electron"
+  },
+  "dependencies": {
+    "electron": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "socket.io-client": "latest"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@testing-library/user-event": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^26.1.0",
+    "typescript": "latest",
+    "vite": "^6.4.1",
+    "vitest": "^3.2.4"
+  }
+}
