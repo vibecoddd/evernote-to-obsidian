@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evernote to Obsidian"
+  short_description: "Safely migrate ENEX notes to Obsidian"
+  default_prompt: "Use $evernote-to-obsidian to preview and migrate ENEX notes into an Obsidian vault."
