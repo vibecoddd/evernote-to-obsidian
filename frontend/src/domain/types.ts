@@ -52,6 +52,13 @@ export interface TargetConfig {
     invalid_char_replacement: string;
     max_folder_depth: number;
   };
+  migration: {
+    auto_open_obsidian: boolean;
+    keep_temp_files: boolean;
+    create_welcome_note: boolean;
+    create_templates: boolean;
+    optimize_settings: boolean;
+  };
   logging: { level: string; file: string; console: boolean; format: string };
   sync: { incremental: boolean; state_file: string; check_modification_time: boolean; skip_unchanged: boolean };
   advanced: { parallel_processing: boolean; max_workers: number; chunk_size: number; memory_limit: string; temp_directory: string };

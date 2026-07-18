@@ -2,6 +2,8 @@ import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { createApiClient, type ApiClient } from "./api/client";
+import { App } from "./App";
+import "./styles/app.css";
 
 function Bootstrap() {
   const [client, setClient] = useState<ApiClient | null>(null);
@@ -24,7 +26,7 @@ function Bootstrap() {
   if (error) {
     return <main aria-live="assertive"><p>{error}</p><button type="button" onClick={() => void start()}>重试</button></main>;
   }
-  if (client) return <main aria-live="polite">印象笔记迁移工具已准备就绪。</main>;
+  if (client) return <App api={client} />;
   return <main aria-live="polite">印象笔记迁移工具正在启动…</main>;
 }
 
