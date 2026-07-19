@@ -8,18 +8,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "test:frontend": "vitest run",
     "build:renderer": "vite build --config vite.config.ts",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "node scripts/clean_dist_electron.cjs && tsc -p tsconfig.electron.json",
     "build": "npm run typecheck && npm run test:frontend && npm run build:renderer && npm run build:electron",
-    "package:mac": "python scripts/build_electron_app.py --mac",
-    "package:win": "python scripts/build_electron_app.py --win",
-    "package:current": "python scripts/build_electron_app.py"
+    "package:mac": "node scripts/run_python_build.cjs --mac",
+    "package:win": "node scripts/run_python_build.cjs --win",
+    "package:current": "node scripts/run_python_build.cjs"
   },
   "engines": {
     "node": ">=22.12.0",
     "npm": ">=10.0.0"
   },
   "dependencies": {
-    "electron": "43.1.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "socket.io-client": "4.8.3"
@@ -32,6 +31,7 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "4.7.0",
+    "electron": "43.1.1",
     "electron-builder": "26.7.0",
     "jsdom": "26.1.0",
     "typescript": "7.0.2",

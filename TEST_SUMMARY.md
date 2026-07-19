@@ -68,3 +68,47 @@
 ## 总结
 
 已成功完成了测试用例的创建和关键代码的修复工作，为工具的稳定运行提供了保障。遇到的导出问题主要是账号认证问题，需要进一步验证测试账号信息。
+
+## Electron 桌面客户端验证记录
+
+记录时间：2026-07-19 23:20:09 CST
+
+平台：
+- macOS 26.5.2 (Build 25F84), arm64
+- Python: `.venv/bin/python` 3.12.3
+- Node.js: `/opt/homebrew/opt/node@22/bin/node` v22.23.1
+- npm: `/opt/homebrew/opt/node@22/bin/npm` 10.9.8
+
+已运行：
+- `.venv/bin/pytest -q test_electron_packaging.py test_web_environment.py test_web_integration.py`
+  - 结果：16 passed, 1 skipped
+- `.venv/bin/pytest -q test_desktop_smoke.py`
+  - 结果：1 passed in 3.95s
+  - 说明：使用已批准的外部 pytest 权限运行 loopback smoke。测试验证 `backend_app.py --port <dynamic>` 能在 `127.0.0.1` 启动并返回 `/api/healthz` 的 `{"status": "ok"}`，随后能终止 sidecar 进程。
+- `npm run typecheck`
+  - 结果：pass
+- `npm run test:frontend`
+  - 结果：10 test files passed, 40 tests passed
+- `npm run build`
+  - 结果：pass；renderer 输出相对 `./assets/...`，Electron 主进程输出到 `dist-electron/`
+- `npm run package:mac`
+  - 结果：pass；生成 `release/mac-arm64/印象笔记迁移工具.app` 和 `release/印象笔记迁移工具-0.1.0-arm64.dmg`
+- packaged macOS app smoke
+  - 结果：pass
+  - 说明：带 `--remote-debugging-port=9333` 启动打包后的 `.app`，Python sidecar 在动态端口 `64718` 返回 `/api/healthz` 的 `{"status": "ok"}`；renderer URL 为打包内 `app.asar/dist/renderer/index.html`，标题为 `印象笔记迁移工具`，React 根节点已挂载并显示五步向导首屏“选择数据源”。关闭后 `evernote-backend` 和应用进程无残留，端口 `64718` 不再监听。
+- `.venv/bin/pytest -q`
+  - 结果：50 passed, 1 skipped, 7 failed, 8 warnings
+
+完整 Python 套件中仍失败的非桌面专项测试：
+- `examples/test_basic.py::test_markdown_converter`
+- `examples/test_basic.py::test_integration`
+- `test_integration_steps.py::TestStep2MarkdownConversion::test_html_to_markdown_conversion`
+- `test_integration_steps.py::TestStep2MarkdownConversion::test_index_file_generation`
+- `test_integration_steps.py::TestStep3ObsidianConfiguration::test_obsidian_vault_structure`
+- `test_integration_steps.py::TestStep3ObsidianConfiguration::test_welcome_note_creation`
+- `test_integration_steps.py::TestStep3ObsidianConfiguration::test_templates_creation`
+
+未运行：
+- Windows NSIS 安装包冒烟验证
+
+未运行原因：当前机器是 macOS arm64；Windows NSIS 安装、路径选择器和 Vault 打开验证需要 Windows x64 环境。

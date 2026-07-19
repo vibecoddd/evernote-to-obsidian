@@ -15,6 +15,7 @@ export interface WaitForBackendOptions {
 }
 
 const DEFAULT_HEALTH_TIMEOUT_MS = 15_000;
+const PACKAGED_HEALTH_TIMEOUT_MS = 60_000;
 const DEFAULT_HEALTH_INTERVAL_MS = 200;
 const DEFAULT_STOP_TIMEOUT_MS = 5_000;
 
@@ -112,6 +113,36 @@ function waitForChildExit(
     };
     const timeout = setTimeout(() => finish(child.exitCode !== null), timeoutMs);
     child.once("exit", () => finish(true));
+  });
+}
+
+function backendExitMessage(code: number | null, signal: NodeJS.Signals | null): string {
+  if (code !== null) {
+    return `Backend exited before health check with code ${code}`;
+  }
+  return `Backend exited before health check with signal ${signal ?? "unknown"}`;
+}
+
+function waitForBackendStartupFailure(
+  child: BackendHandle["process"],
+): Promise<never> {
+  if (child.exitCode !== null) {
+    return Promise.reject(new Error(backendExitMessage(child.exitCode, null)));
+  }
+
+  return new Promise((_, reject) => {
+    child.once("error", (error) => {
+      reject(
+        new Error(
+          `Backend failed to start before health check: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      );
+    });
+    child.once("exit", (code, signal) => {
+      reject(new Error(backendExitMessage(code, signal)));
+    });
   });
 }
 
@@ -310,8 +341,14 @@ export function createDesktopLifecycle(
 
       await dependencies.app.whenReady();
       backend = await dependencies.startBackend();
+      const healthOptions = dependencies.app.isPackaged
+        ? { timeoutMs: PACKAGED_HEALTH_TIMEOUT_MS }
+        : undefined;
       try {
-        await dependencies.waitForBackend(backend.url);
+        await Promise.race([
+          dependencies.waitForBackend(backend.url, healthOptions),
+          waitForBackendStartupFailure(backend.process),
+        ]);
       } catch (error) {
         await stopBackend();
         throw error;

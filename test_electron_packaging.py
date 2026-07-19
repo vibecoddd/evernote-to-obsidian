@@ -187,7 +187,64 @@ def test_package_manifest_exposes_platform_packaging_commands():
     package = json.loads(read_project_file("package.json"))
 
     for command in ("package:mac", "package:win", "package:current"):
-        assert "scripts/build_electron_app.py" in package["scripts"][command]
+        assert "scripts/run_python_build.cjs" in package["scripts"][command]
+
+
+def test_package_manifest_uses_node_launcher_instead_of_bare_python():
+    package = json.loads(read_project_file("package.json"))
+    launcher = read_project_file("scripts/run_python_build.cjs")
+
+    for command in ("package:mac", "package:win", "package:current"):
+        script = package["scripts"][command]
+        assert script.startswith("node scripts/run_python_build.cjs")
+        assert not script.startswith("python ")
+        assert "scripts/build_electron_app.py" not in script
+
+    assert "build_electron_app.py" in launcher
+    assert ".venv" in launcher
+    assert "python3" in launcher
+    assert "sys.version_info" in launcher
+
+
+def test_electron_runtime_package_is_dev_dependency_only():
+    package = json.loads(read_project_file("package.json"))
+    lockfile = json.loads(read_project_file("package-lock.json"))
+
+    assert "electron" not in package["dependencies"]
+    assert package["devDependencies"]["electron"] == "43.1.1"
+    assert "electron" not in lockfile["packages"][""]["dependencies"]
+    assert lockfile["packages"][""]["devDependencies"]["electron"] == "43.1.1"
+
+
+def test_electron_type_script_output_matches_package_entrypoint():
+    package = json.loads(read_project_file("package.json"))
+    tsconfig = json.loads(read_project_file("tsconfig.electron.json"))
+
+    assert package["main"] == "dist-electron/main.js"
+    assert tsconfig["compilerOptions"]["outDir"] == "dist-electron"
+    assert tsconfig["compilerOptions"]["rootDir"] == "electron"
+    assert "electron/main.ts" in tsconfig["include"]
+    assert "electron/preload.ts" in tsconfig["include"]
+    assert "electron/main.test.ts" not in tsconfig["include"]
+
+
+def test_vite_renderer_uses_relative_assets_for_file_url_packaging():
+    config = read_project_file("vite.config.ts")
+
+    assert 'base: "./"' in config
+
+
+def test_electron_build_script_cleans_stale_output_before_compile():
+    package = json.loads(read_project_file("package.json"))
+    cleaner = read_project_file("scripts/clean_dist_electron.cjs")
+
+    assert package["scripts"]["build:electron"].startswith(
+        "node scripts/clean_dist_electron.cjs && "
+    )
+    assert "dist-electron" in cleaner
+    assert "rmSync" in cleaner
+    assert "recursive: true" in cleaner
+    assert "force: true" in cleaner
 
 
 def test_manifest_and_docs_define_a_clean_checkout_electron_launch_flow():
@@ -200,7 +257,7 @@ def test_manifest_and_docs_define_a_clean_checkout_electron_launch_flow():
     assert "发布打包必须使用 Node 22.12+" in documentation
     assert package["main"] == "dist-electron/main.js"
     assert package["scripts"]["build:renderer"] == "vite build --config vite.config.ts"
-    assert package["scripts"]["build:electron"] == "tsc -p tsconfig.electron.json"
+    assert "tsc -p tsconfig.electron.json" in package["scripts"]["build:electron"]
     assert "npm run build:renderer && npm run build:electron" in documentation
     assert "npx electron ." in documentation
     assert "仓库根目录" in documentation

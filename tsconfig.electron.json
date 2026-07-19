@@ -3,11 +3,11 @@
     "target": "ES2022",
     "module": "CommonJS",
     "outDir": "dist-electron",
-    "rootDir": ".",
+    "rootDir": "electron",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["electron"]
+  "include": ["electron/main.ts", "electron/preload.ts", "electron/types.ts"]
 }

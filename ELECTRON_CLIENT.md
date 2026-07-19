@@ -36,7 +36,7 @@ npm run build
 
 ## 启动与退出行为
 
-每次桌面启动时，Electron 会在 `127.0.0.1` 请求一个由操作系统分配的动态端口，再以该端口启动 Python sidecar。sidecar 只绑定 loopback，不接受局域网连接。主进程轮询 `http://127.0.0.1:<port>/api/healthz`，默认最多等待 15 秒；健康检查成功后才显示窗口，超时会停止 sidecar 并报告健康检查地址和最后一次错误。
+每次桌面启动时，Electron 会在 `127.0.0.1` 请求一个由操作系统分配的动态端口，再以该端口启动 Python sidecar。sidecar 只绑定 loopback，不接受局域网连接。主进程轮询 `http://127.0.0.1:<port>/api/healthz`；开发模式默认最多等待 15 秒，打包应用为 PyInstaller sidecar 冷启动最多等待 60 秒。健康检查成功后才显示窗口，超时会停止 sidecar 并报告健康检查地址和最后一次错误；如果 sidecar 在健康检查前退出，错误会优先报告退出码或信号。
 
 窗口加载本地的 React/Vite renderer，而 renderer 通过受限的 preload IPC 获取 sidecar URL、选择文件或目录、以及打开导出路径。应用只允许一个窗口实例：再次启动会聚焦已有窗口；迁移进行中关闭窗口会先请求确认。退出时 Electron 终止 Python sidecar，等待最多 5 秒，然后在必要时强制结束进程。
 
@@ -62,7 +62,7 @@ npm run package:win
 
 - `dist/renderer/index.html` 未被打入应用：重新运行 `npm run build`，并确认 electron-builder 包含 `dist/renderer/**/*`。
 - `backend/evernote-backend`（Windows 为 `backend/evernote-backend.exe`）缺失：重新安装 `requirements-desktop-build.txt` 后重新执行打包命令，并确认 `dist/backend` 被作为 `extraResources` 打包。
-- sidecar 在 15 秒内未通过 `/api/healthz`：检查安全软件、防火墙和 Python sidecar 启动输出；动态 loopback 端口无需预先释放或固定为 5000。
+- sidecar 在开发模式 15 秒或打包应用 60 秒内未通过 `/api/healthz`：检查安全软件、防火墙和 Python sidecar 启动输出；动态 loopback 端口无需预先释放或固定为 5000。
 - 构建时缺少 `templates/`、`static/` 或 `src/`：重新运行 Python sidecar 构建，确认 PyInstaller spec 收集这些运行时资源。
 
 ## macOS Gatekeeper、签名与公证

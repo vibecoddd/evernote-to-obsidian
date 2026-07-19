@@ -219,6 +219,104 @@ describe("desktop lifecycle", () => {
     expect(events).toEqual(["stop", "quit"]);
   });
 
+  it("reports a backend child exit before the health check timeout", async () => {
+    const childExitHandlers: Array<(code: number | null, signal: NodeJS.Signals | null) => void> =
+      [];
+    const child = {
+      exitCode: null as number | null,
+      killed: false,
+      kill: vi.fn((_signal: NodeJS.Signals) => true),
+      once: vi.fn((event: string, listener: (code: number | null, signal: NodeJS.Signals | null) => void) => {
+        if (event === "exit") childExitHandlers.push(listener);
+      }),
+    };
+    let rejectHealth: ((error: Error) => void) | undefined;
+    const app = {
+      getAppPath: vi.fn(() => "/app"),
+      requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+      whenReady: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn(),
+      quit: vi.fn(),
+    };
+    const lifecycle = createDesktopLifecycle({
+      app,
+      BrowserWindow: vi.fn(),
+      dialog: { showOpenDialog: vi.fn() },
+      ipcMain: { handle: vi.fn() },
+      shell: { openPath: vi.fn() },
+      startBackend: vi.fn().mockResolvedValue({
+        url: "http://127.0.0.1:43123",
+        process: child,
+        stop: vi.fn().mockResolvedValue(undefined),
+      }),
+      waitForBackend: vi.fn(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejectHealth = reject;
+          }),
+      ),
+      rendererPath: "/app/dist/renderer/index.html",
+    });
+
+    const starting = lifecycle.start();
+    await vi.waitFor(() => expect(childExitHandlers).toHaveLength(1));
+    child.exitCode = 78;
+    childExitHandlers[0](78, null);
+    rejectHealth?.(new Error("health timeout"));
+
+    await expect(starting).rejects.toThrow(
+      "Backend exited before health check with code 78",
+    );
+  });
+
+  it("uses a longer health timeout for packaged sidecar cold starts", async () => {
+    const child = {
+      exitCode: null as number | null,
+      killed: false,
+      kill: vi.fn((_signal: NodeJS.Signals) => true),
+      once: vi.fn(),
+    };
+    const window = {
+      isDestroyed: vi.fn().mockReturnValue(false),
+      isMinimized: vi.fn().mockReturnValue(false),
+      restore: vi.fn(),
+      focus: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
+      loadFile: vi.fn().mockResolvedValue(undefined),
+      webContents: { on: vi.fn(), send: vi.fn() },
+    };
+    const waitForBackend = vi.fn().mockResolvedValue(undefined);
+    const app = {
+      getAppPath: vi.fn(() => "/app"),
+      isPackaged: true,
+      requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+      whenReady: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn(),
+      quit: vi.fn(),
+    };
+    const lifecycle = createDesktopLifecycle({
+      app,
+      BrowserWindow: vi.fn(() => window),
+      dialog: { showOpenDialog: vi.fn() },
+      ipcMain: { handle: vi.fn() },
+      shell: { openPath: vi.fn() },
+      startBackend: vi.fn().mockResolvedValue({
+        url: "http://127.0.0.1:43123",
+        process: child,
+        stop: vi.fn(),
+      }),
+      waitForBackend,
+      rendererPath: "/app/dist/renderer/index.html",
+    });
+
+    await lifecycle.start();
+
+    expect(waitForBackend).toHaveBeenCalledWith("http://127.0.0.1:43123", {
+      timeoutMs: 60_000,
+    });
+  });
+
   it("force kills a still-alive child when its stop method resolves prematurely", async () => {
     vi.useFakeTimers();
     const beforeQuitHandlers: Array<(event: { preventDefault: () => void }) => void> = [];
